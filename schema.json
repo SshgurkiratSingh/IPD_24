@@ -1,0 +1,49 @@
+{
+    "name": "home_automation_assistant",
+    "strict": true,
+    "schema": {
+      "type": "object",
+      "properties": {
+        "reply": {
+          "type": "string",
+          "description": "The response message from the assistant."
+        },
+        "update": {
+          "type": "array",
+          "description": "List of topics that need modification and their new values.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "topic": {
+                "type": "string",
+                "description": "The MQTT topic that identifies the device or setting to update."
+              },
+              "value": {
+                "type": "string",
+                "description": "The new value to assign to the specified topic."
+              }
+            },
+            "required": [
+              "topic",
+              "value"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "contextNeed": {
+          "type": "array",
+          "description": "List of topics for which historical data is requested.",
+          "items": {
+            "type": "string",
+            "description": "MQTT topics for which the historical context is required."
+          }
+        }
+      },
+      "required": [
+        "reply",
+        "update",
+        "contextNeed"
+      ],
+      "additionalProperties": false
+    }
+  }
