@@ -1,4 +1,6 @@
-curl -X POST http://localhost:2500/api/v1/chat -H "Content-Type: application/json" -d '{"userMessage": "Turn on the hall light in 120 sec", "history": [{"role": "system", "content": "Your smart home assistant"}]}'
+curl -X POST http://localhost:2500/api/v1/chat -H "Content-Type: application/json" -d '{"userMessage": "Turn on the hall light in 120 sec and alert me ", }'
 curl -X POST http://localhost:2500/api/v1/chat -H "Content-Type: application/json" -d '{"userMessage": "Turn on the lawn light when ultrasonic1 is equal to 25", "history": [{"role": "system", "content": "Your smart home assistant"}]}'
 curl -X POST http://localhost:2500/api/v1/chat -H "Content-Type: application/json" -d '{"userMessage": "which song is playing", "history": [{"role": "system", "content": "Your smart home assistant"}]}'
-curl -X POST http://localhost:2500/api/v1/chat -H "Content-Type: application/json" -d '{"userMessage": "pause the music", "history": [{"role": "system", "content": "Your smart home assistant"}]}'
+curl -X POST http://localhost:2500/api/v1/chat -H "Content-Type: application/json" -d '{"userMessage": "change the song to taylor begin again", "history": [{"role": "system", "content": "Your smart home assistant"}]}'
+curl -X POST http://localhost:2500/api/v1/chat -H "Content-Type: application/json" -d '{"userMessage": "notigy me current song in 1 minute"}'
+curl -X POST http://localhost:2500/api/v1/chat -H "Content-Type: application/json" -d '{"userMessage": "change the current song in 1 min"}'

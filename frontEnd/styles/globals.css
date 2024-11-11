@@ -33,7 +33,7 @@
 
 /* Modern neon gradient */
 .gradient-text2 {
-  background: -webkit-linear-gradient(45deg, #00F5A0, #00D9F5, #00A1FF, #A200FF);
+  background: -webkit-linear-gradient(45deg, #00F5A0, #00D9F5, #d7e608, #A200FF);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

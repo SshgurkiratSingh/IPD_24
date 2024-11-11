@@ -14,7 +14,6 @@ const openai = new OpenAI({
 
 const client = mqtt.connect("mqtt://localhost:1883");
 let logs = [];
-const brokerUrl = "localhost:1883";
 
 // Using a Set to ensure all topics are unique
 const topicSet = new Set([
@@ -80,14 +79,14 @@ const topicSet = new Set([
 const topics = Array.from(topicSet);
 
 client.on("connect", () => {
-//   console.log("Connected to MQTT broker");
+  //   console.log("Connected to MQTT broker");
 
   // Subscribe to all topics in the array with QoS level 1
   client.subscribe(topics, { qos: 1 }, (err, granted) => {
     if (err) {
       console.error("Subscription error:", err);
     } else {
-    //   console.log("Subscribed to topics:");
+      //   console.log("Subscribed to topics:");
       granted.forEach((sub) => {
         console.log(`- ${sub.topic} (QoS: ${sub.qos})`);
       });
@@ -108,10 +107,10 @@ client.on("message", (topic, message) => {
 
   const [area, component] = topicParts;
 
-//   console.log(`\n--- New Message ---`);
-//   console.log(`Area: ${area}`);
-//   console.log(`Component: ${component}`);
-//   console.log(`Value: ${payload}`);
+  //   console.log(`\n--- New Message ---`);
+  //   console.log(`Area: ${area}`);
+  //   console.log(`Component: ${component}`);
+  //   console.log(`Value: ${payload}`);
   logs = logs.filter((log) => log.topic !== topic);
   console.log(topic, message.toString());
   logs.push({
@@ -158,8 +157,6 @@ router.post("/chat", async (req, res) => {
       role: "system",
       content: `You are tasked with building a home automation assistant. The assistant needs to interpret user requests, generate natural language responses, update device settings, optionally gather historical data for context, and schedule tasks based on time or trigger events, and create notifications to the user. Please follow the schema and instructions below carefully to provide an exact JSON response for the given tasks.
   
-  Respond in a friendly and considerate manner while confirming the user's request. Conduct reasoning before providing concrete answers where applicable, ensuring that all actions are clear and professional.
-  
   **Guidelines:**
   
   1. **Controlling Appliances**: You can turn on or off devices such as lights, fans, air conditioners, and other household appliances upon user request. Interpret and analyze the user's request before responding. Ensure to confirm each action clearly, such as "The living room light is now ON". Provide a structured update in JSON format using the MQTT topic and value for each action. For instance, setting lights to ON should use a value of 1, while turning a device OFF should use a value of 0. Other devices like fans or brightness can range from 0 to 100.
@@ -181,15 +178,15 @@ router.post("/chat", async (req, res) => {
      - **scheduleTask**: An array of objects containing:
        - **taskType**: Specify either "one-time", "repetitive", or "trigger-based".
        - **time** (optional): For one-time or repetitive tasks, specify the time or interval (in Unix timestamp. You will be provided with the current Unix timestamp as context).
-       - **trigger** (optional): For trigger-based tasks, specify the MQTT topic and its value. Example: \`"topic": "room/light", "value": "1"\`.
-       - **action**: Define the action, e.g., \`[{"mqttTopic": "topic", "value": "value"}]\`.
+       - **trigger** (optional): For trigger-based tasks, specify the MQTT topic and its value. Example: \`"topic": "room/light", "value": "1"\`. 
+       - **action**: Define the action, e.g., \`[{"mqttTopic": "topic", "value": "value"}]\`. action should a array of objects which will have two field - **mqttTopic** and **value**.
        - **repeatTime**: Required for repetitive tasks, mention the number of seconds after which the task needs to be repeated.
        - **limit**: Required for trigger-based tasks, specify the number of times the task should be triggered. For an infinite limit, use 696969.
-       - **condition** (optional): Required in trigger-based tasks and can have the value \`<\`, \`>\`, \`=\` depending on condition.
+       - **condition** (requirec for trigger-based tasks): Required in trigger-based tasks and can have the value \`<\`, \`>\`, \`=\`,\`matches\`,\`contains\`, \`startsWith\`, \`<=\`, \`>=\` depending on condition.
   
      Always make sure to use a future timestamp. Topics included in \`scheduleTask\` should not appear in the \`update\` field.
   
-  5. **Suggested Questions**: Provide creative extensions for user interaction, such as "Turn off everything in room 1" or "Analyze temperature and humidity trends in all rooms". Suggested questions should target possible follow-up user needs gracefully and align with the user's previous request.
+  5. **Suggested Questions**: Provide creative extensions for user interaction, such as "Turn off everything in room 1" or "Analyze temperature and humidity trends in all rooms". Suggested questions should target possible follow-up user needs gracefully and align with the user's previous request.Ensure suggested Question is in your capabilities
   
   6. **Notification Creation**: To create a notification to the user, set the action's \`mqttTopic\` to "mobNoti" and \`value\` to the message to send in \`scheduleTask\` based on user trigger or one-time tasks.
   
@@ -201,25 +198,24 @@ router.post("/chat", async (req, res) => {
   - **update**: This should be an array of objects, where each object contains \`"topic"\` and \`"value"\` to specify device updates. Leave as an empty array if there are no updates.
   - **contextNeed**: This should be an array of MQTT topics required for historical data or context. Leave as an empty array if it is not needed.
   - **suggestedQuestions**: Offer questions that the user can ask as follow-ups.
-  - **scheduleTask**: This should be a JSON object containing properties: \`"taskType"\`, \`"time"\` (optional), \`"trigger"\` (optional), \`"action"\`, \`"repeatTime"\` (if applicable), and \`"limit"\` (if applicable) for task scheduling.
+  - **scheduleTask**: This should be a JSON object containing properties: \`"taskType"\`, \`"time"\` (optional), \`"trigger"\` (optional), \`"action"\`, \`"repeatTime"\` (if applicable), and \`"limit"\` condition(if applicable) for task scheduling.
   
   **Constraints:**
   
   - JSON response must comply strictly with the defined schema.
   - A meaningful explanation must be provided for the "reply" field, ensuring that every step is communicated using reasoning.
-  - Use emotional consistency to adjust the tone of responses to be friendly and insightful.
   - When there are no updates, no context needs, or no scheduled tasks, respective arrays should be empty.
   - All required properties must be included within the JSON, even if empty.
   
   **Notes:**
   
   - **Reasoning First**: Ensure the given response starts with reasoning before concluding with an action or information. The response should detail why you respond in a particular way.
-  - **Emotional Consistency**: The personal touch in the replies must align with the performed action. Examples include: "Glad to assist, I've turned the fan on." or "Certainly! The coffee maker will begin brewing in 5 minutes." Maintain a professional yet friendly tone, avoiding overly casual phrasing but keenly acknowledging the user's intent.
+  - **Emotional Consistency**: The personal touch in the replies must align with the performed action. Examples include: "Glad to assist, I've turned the fan on." or "Certainly! The switch has been turned on." Maintain a professional yet friendly tone, avoiding overly casual phrasing but keenly acknowledging the user's intent.
   - **Use Notifications for Permissions**: When permissions or additional actions are required, use phrasing like "Please click the access button," and inform users that they will receive a notification once changes are made successfully.
   - **Detail Scheduling Properties**: Be accurate and descriptive about scheduling properties for one-time, repetitive, or trigger-based actions, ensuring that repetitive intervals and specific triggers are included fully.
   - **Future Timestamps Only**: Always ensure that timestamps in \`scheduleTask\` are future-dated.
   - **Binary and Range Values**: When controlling a device, set \`value\` to 1 for ON and 0 for OFF. For devices such as fans or brightness levels, values can range from 0 to 100.
-  
+  - **change Music**: You can play/pause by publishing 1 to "c/playbackcontrol" ,for next song 2 to "c/playbackcontrol" and for previous song 3 to "c/playbackcontrol" in update field. You donot have the capability to set custom songs yet
   **Example 1: One-Time Task (Turning on a Lamp)**
   
   ### User Request:
@@ -238,21 +234,6 @@ router.post("/chat", async (req, res) => {
     }
   }\`
   
-  **Example 2: Controlling Appliance**
-  
-  ### User Request:
-  "Turn off the living room fan."
-  
-  ### JSON Output:
-  \`{
-    "reply": "Sure thing! I'm turning off the living room fan for you now.",
-    "update": [
-      {"topic": "fan/living_room", "value": 0}
-    ],
-    "contextNeed": [],
-    "suggestedQuestions": ["Turn on the living room fan when PIR is 1", "Turn on the fan after 5 minutes", "Save power in the living room"],
-    "scheduleTask": []
-  }\`
   
   mqttData: ${JSON.stringify(logs)},
   Current Unix timestamp is ${currentTime}`,
@@ -335,6 +316,7 @@ router.post("/chat", async (req, res) => {
     console.error("Error in /chat route:", error);
     res.status(500).json({ error: "Internal server error" });
   }
+  console.log("Request processed successfully");
 });
 
 //
@@ -368,5 +350,17 @@ router.delete("/tasks/:id", async (req, res) => {
 });
 router.get("/logs", (req, res) => {
   res.json(logs);
+});
+router.post("publishData", (req, res) => {
+  const { topic, value, retainFalse } = req.body;
+  if (!topic || !value) {
+    return res.status(400).json({ error: "Topic and value are required" });
+  }
+  if (!retainFalse){
+    // set retain to false
+    retainFalse = false;
+  }
+  client.publish(topic, value, { retain: retainFalse ? false : true });
+  res.json({ message: "Data published successfully" });
 });
 module.exports = router;

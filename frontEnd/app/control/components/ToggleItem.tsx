@@ -1,29 +1,105 @@
-import React, { useState } from "react";
-import { Switch } from "@nextui-org/switch";
-
-interface ToggleItemProps {
-  item: {
-    heading: string;
-    topic: string;
-    type: string;
-    defaultState: boolean;
-  };
+"use client";
+import React, { use, useEffect, useState } from "react";
+import { toast } from "react-toastify";
+import { debounce } from "lodash";
+interface ToggleButtonProps {
+  topic: string;
+  value: boolean;
+  lastUpdate?: Date;
+  subTitle?: string;
+  style?: number;
+  ambientVariant?: boolean;
+  plantVersion?: boolean;
+  slideVersion?: boolean;
 }
 
-const ToggleItem: React.FC<ToggleItemProps> = ({ item }) => {
-  const [state, setState] = useState<boolean>(item.defaultState);
+const ToggleButton = ({
+  topic,
+  value,
+  subTitle = "Light",
+  ambientVariant,
+  plantVersion,
+  slideVersion,
+}: ToggleButtonProps) => {
+  const [isToggled, setIsToggled] = useState(value);
+  useEffect(() => {
+    // Update the checkbox state when the 'value' prop changes
+    setIsToggled(value);
+  }, [value]);
 
-  const handleToggle = () => {
-    setState(!state);
-    // Add your MQTT publish logic here if needed
+  const handleCheckboxChangeActual = async () => {
+    const invertedValue = !isToggled;
+    setIsToggled(invertedValue);
+
+    const encodedTopic = encodeURIComponent(topic);
+    try {
+      const response = await fetch(
+        `http://192.168.1.100:2500/api/v1/publish?value=${invertedValue}&topic=${encodedTopic}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      const responseData = await response.json();
+      if (!response.ok) {
+        console.error("HTTP GET request failed");
+      } else {
+        toast.success(`Switch toggled: ${responseData.message}`);
+      }
+    } catch (error) {
+      console.error("An error occurred:", error);
+    }
   };
 
-  return (
-    <div className="flex items-center justify-between p-2 border rounded-lg">
-      <span className="font-medium">{item.heading}</span>
-      <Switch isSelected={state} onChange={handleToggle} />
-    </div>
-  );
+  // Debounce the actual function
+  const handleCheckboxChange = debounce(handleCheckboxChangeActual, 200);
+
+  if (plantVersion) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center ml-5"
+        id={topic}
+      >
+        <div className="fx-block">
+          <div className="toggle">
+            <div>
+              <input
+                type="checkbox"
+                id="toggles"
+                checked={isToggled}
+                onChange={handleCheckboxChange}
+              />
+              <div data-unchecked="On" data-checked="Off"></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="text-sm font-bold text-gray-300">{subTitle}</div>
+      </div>
+    );
+  } else {
+    return (
+      <div className="flex flex-col items-center justify-center" id={topic}>
+        <label className="switch-button" htmlFor={`switch-${topic}`}>
+          <div className="switch-outer">
+            <input
+              id={`switch-${topic}`}
+              type="checkbox"
+              checked={isToggled}
+              onChange={handleCheckboxChange}
+            />
+            <div className="button">
+              <span className="button-toggle"></span>
+              <span className="button-indicator"></span>
+            </div>
+          </div>
+        </label>
+        <div className="text-sm font-bold text-gray-300">{subTitle}</div>
+      </div>
+    );
+  }
 };
 
-export default ToggleItem;
+export default React.memo(ToggleButton);

@@ -3,7 +3,7 @@ import React from "react";
 import { Card, CardHeader, CardBody, CardFooter } from "@nextui-org/card";
 import { Divider } from "@nextui-org/divider";
 import mainPageConfig from "@/MainPageConfigModular";
-import ToggleItem from "./ToggleItem";
+import ToggleButton from "./ToggleItem";
 import RangeItem from "./RangeItem";
 import GaugeItem from "./GaugeItem";
 
@@ -38,7 +38,7 @@ const ControlPanel: React.FC = () => {
                 <h5 className="mb-4 text-lg font-semibold">Controls</h5>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {area.toggleItems.map((item, index) => (
-                    <ToggleItem key={index} item={item} />
+                    <ToggleButton key={index} {...item} />
                   ))}
                 </div>
               </div>
