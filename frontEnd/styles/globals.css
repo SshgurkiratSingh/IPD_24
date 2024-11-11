@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@keyframes rot55 {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Updated gradient text with modern colors and smoother animation */
+.gradient-text {
+  background: -webkit-linear-gradient(45deg, #FF6B6B, #04ffee, #45B7D1, #0da721);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 300% 300%;
+  animation: gradientAnimation 6s ease infinite;
+}
+
+@keyframes gradientAnimation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Modern neon gradient */
+.gradient-text2 {
+  background: -webkit-linear-gradient(45deg, #00F5A0, #00D9F5, #00A1FF, #A200FF);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 300% 300%;
+  animation: gradientAnimation 6s ease infinite;
+}
+
+/* Warm sunset gradient */
+.gradient-text3 {
+  background: -webkit-linear-gradient(45deg, #FF8C00, #FF5F6D, #FFC371, #FF3F8B);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 300% 300%;
+  animation: gradientAnimation 6s ease infinite;
+}
+
+@keyframes gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Modern deep ocean gradient */
+.animate-gradient-flow {
+  background: linear-gradient(90deg, #0269df, #f70592, #34e008, #a4f70b, #1593bd);
+  background-size: 300% 300%;
+  animation: gradient-flow 8s ease-in-out infinite;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  transition: all 0.3s ease;
+}
+
+.bg-gradient {
+  background: linear-gradient(135deg, #1e3a8a, #9333ea);
+}
+.neon-text {
+  background: linear-gradient(90deg, #ff8c00, #ff0080);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.neon-divider {
+  border-top: 2px solid;
+  border-image: linear-gradient(90deg, #1e3a8a, #9333ea) 1;
+}
