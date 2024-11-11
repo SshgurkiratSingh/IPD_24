@@ -5,7 +5,7 @@ import React, { useState, ChangeEvent, useRef, useEffect } from "react";
 import { CiUser } from "react-icons/ci";
 import { AiOutlineRobot } from "react-icons/ai";
 
-import { Card, CardHeader, CardBody } from "@nextui-org/card";
+import { Card, CardHeader, CardBody, CardFooter } from "@nextui-org/card";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import { BsInfoCircle } from "react-icons/bs";
@@ -52,6 +52,15 @@ const suggestedQuestions = [
   "Change the song",
   "Turn off hall TV after 5 minutes",
   "Turn off music after half an hour",
+  "What's the current temperature in the living room?",
+  "Set bedroom lights to 50% brightness",
+  "Lock all doors",
+  "Open the garage door",
+  "turn on room switchboard",
+  "Turn on fan for 2 hours in hall",
+  "Is front door locked?",
+  "Turn off all lights in home except lawn",
+  "start playing song",
 ];
 
 const getRandomQuestions = (questions: string[]) => {
@@ -65,6 +74,10 @@ const ChatPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isListening, setIsListening] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [randomQuestions, setRandomQuestions] = useState<string[]>([]); // New state for random questions
+  useEffect(() => {
+    setRandomQuestions(getRandomQuestions(suggestedQuestions));
+  }, []);
 
   useEffect(() => {
     if (chatHistory.length > 0) {
@@ -182,19 +195,17 @@ const ChatPage: React.FC = () => {
               <div className="mt-4">
                 <p className="font-bold text-lg">Try asking:</p>
                 <div className="flex flex-wrap mt-2">
-                  {getRandomQuestions(suggestedQuestions).map(
-                    (question, idx) => (
-                      <Button
-                        key={idx}
-                        size="sm"
-                        variant="flat"
-                        className="m-1 bg-blue-600 hover:bg-blue-700 text-white"
-                        onClick={() => handleSuggestedQuestionClick(question)}
-                      >
-                        {question}
-                      </Button>
-                    )
-                  )}
+                  {randomQuestions.map((question, idx) => (
+                    <Button
+                      key={idx}
+                      size="sm"
+                      variant="flat"
+                      className="m-1 bg-blue-600 hover:bg-blue-700 hover:animate-bounce gradient-text2"
+                      onClick={() => handleSuggestedQuestionClick(question)}
+                    >
+                      {question}
+                    </Button>
+                  ))}
                 </div>
               </div>
             ) : (
@@ -458,6 +469,7 @@ const ChatPage: React.FC = () => {
             </Button>
           </form>
         </CardBody>
+        <CardFooter></CardFooter>
       </Card>
     </div>
   );
