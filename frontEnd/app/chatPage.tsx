@@ -46,6 +46,7 @@ interface Action {
 
 const suggestedQuestions = [
   "Turn on the light in room",
+  "notify me about temperature and humidity in room",
   "Tell me about temperature and humidity in room",
   "When PIR gets activated in room, turn on the lights",
   "What can you do",
@@ -53,15 +54,15 @@ const suggestedQuestions = [
   "Schedule turning on lawn light everyday at 7pm",
   "Which song is playing",
   "Change the song",
+  "alert when pir get 1",
   "Turn off hall TV after 5 minutes",
   "Turn off music after half an hour",
   "What's the current temperature in the living room?",
   "Set bedroom lights to 50% brightness",
-  "Lock all doors",
   "Open the garage door",
   "turn on room switchboard",
   "Turn on fan for 2 hours in hall",
-  "Is front door locked?",
+  "Is everything off in room?",
   "Turn off all lights in home except lawn",
   "start playing song",
 ];

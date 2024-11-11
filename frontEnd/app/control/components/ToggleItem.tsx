@@ -1,7 +1,9 @@
 "use client";
-import React, { use, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { debounce } from "lodash";
+import { IconType } from "react-icons";
+import { FaLightbulb, FaPlug, FaTv, FaDesktop, FaLightbulb as FaAmbientLight, FaPumpSoap } from "react-icons/fa";
 interface ToggleButtonProps {
   topic: string;
   value: boolean;
@@ -11,7 +13,27 @@ interface ToggleButtonProps {
   ambientVariant?: boolean;
   plantVersion?: boolean;
   slideVersion?: boolean;
+  type: string;
 }
+
+const getIconByType = (type: string): IconType => {
+  switch (type) {
+    case "light":
+      return FaLightbulb;
+    case "switchboard":
+      return FaPlug;
+    case "tv":
+      return FaTv;
+    case "oled":
+      return FaDesktop;
+    case "ambientLight":
+      return FaAmbientLight;
+    case "pump":
+      return FaPumpSoap;
+    default:
+      return FaLightbulb;
+  }
+};
 
 const ToggleButton = ({
   topic,
@@ -20,7 +42,9 @@ const ToggleButton = ({
   ambientVariant,
   plantVersion,
   slideVersion,
+  type,
 }: ToggleButtonProps) => {
+  const Icon = getIconByType(type);
   const [isToggled, setIsToggled] = useState(value);
   useEffect(() => {
     // Update the checkbox state when the 'value' prop changes
@@ -34,7 +58,7 @@ const ToggleButton = ({
     const encodedTopic = encodeURIComponent(topic);
     try {
       const response = await fetch(
-        `http://192.168.1.100:2500/api/v1/publish?value=${invertedValue}&topic=${encodedTopic}`,
+        `http://192.168.1.100:2500/api/v1/publishData?value=${invertedValue}&topic=${encodedTopic}`,
         {
           method: "GET",
           headers: {
@@ -96,7 +120,10 @@ const ToggleButton = ({
             </div>
           </div>
         </label>
-        <div className="text-sm font-bold text-gray-300">{subTitle}</div>
+        <div className="flex items-center mt-2">
+          <Icon className="mr-2 text-gray-300" />
+          <div className="text-sm font-bold text-gray-300">{subTitle}</div>
+        </div>
       </div>
     );
   }

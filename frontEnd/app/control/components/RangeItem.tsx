@@ -1,47 +1,105 @@
-import React, { useState } from "react";
-import { Slider } from "@nextui-org/slider";
-
-interface RangeItemProps {
-  item: {
-    topic: string;
-    heading: string;
-    type: string;
-    min: number;
-    max: number;
-    step: number;
-    defaultState: number;
-    endMark: string;
-  };
+"use client";
+import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
+import { toast } from "react-toastify";
+import { BsBrightnessAltLow, BsFan } from "react-icons/bs";
+import { Card, CardHeader, CardBody, Divider } from "@nextui-org/react";
+import { debounce } from "lodash";
+interface FanSpeedProps {
+  topic: string;
+  value: number;
+  lastUpdate?: Date;
+  subTitle?: string;
+  style?: number;
+  customHeading?: string;
+  customIcon?: Boolean;
 }
 
-const RangeItem: React.FC<RangeItemProps> = ({ item }) => {
-  const [value, setValue] = useState<number>(item.defaultState);
+const RangeItem = ({
+  topic,
+  value,
+  lastUpdate,
+  subTitle,
+  style,
+  customHeading = "Fan Speed",
+  customIcon = false,
+}: FanSpeedProps) => {
+  const [fanSpeed, setFanSpeed] = useState<number>(value);
 
-  const handleChange = (newValue: number | number[]) => {
-    if (Array.isArray(newValue)) {
-      setValue(newValue[0]);
-    } else {
-      setValue(newValue);
-    }
-    // Add your MQTT publish logic here if needed
+  const debouncedHandleRangeChange = useCallback(
+    debounce(async (newFanSpeed: number) => {
+      const encodedTopic = encodeURIComponent(topic);
+
+      try {
+        const response = await fetch(
+          `http://192.168.1.100:2500/api/v1/publishData?value=${newFanSpeed}&topic=${encodedTopic}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const responseData = await response.json();
+
+        if (!response.ok) {
+          console.error("HTTP GET request failed");
+        } else {
+          console.log("HTTP GET request succeeded");
+        }
+      } catch (error) {
+        console.error("An error occurred:", error);
+      }
+    }, 500), // 300ms delay
+    [topic]
+  );
+
+  const handleRangeChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const newFanSpeed = parseInt(event.target.value);
+    setFanSpeed(newFanSpeed);
+    debouncedHandleRangeChange(newFanSpeed);
   };
 
+  useEffect(() => {
+    // Update the slider state when the 'value' prop changes
+    setFanSpeed(value);
+  }, [value]);
+
   return (
-    <div className="p-2 border rounded-lg">
-      <label className="block mb-2 font-medium">{item.heading}</label>
-      <Slider
-        min={item.min}
-        max={item.max}
-        step={item.step}
-        defaultValue={value}
-        onChange={handleChange}
-        showMarkers
-      />
-      <span className="block mt-2 text-sm">
-        {value}
-        {item.endMark}
-      </span>
-    </div>
+    <Card className="max-w-[400px] dark ">
+      <CardHeader className="flex gap-3 dark">
+        {customIcon ? <BsFan size={30} /> : <BsBrightnessAltLow size={30} />}
+
+        <div className="flex flex-col">
+          <p className="text-md">{customHeading}</p>
+          <p className="text-small text-default-500">{subTitle}</p>
+        </div>
+      </CardHeader>
+      <Divider />
+      <CardBody>
+        <div className="flex flex-col items-center justify-center">
+          <div className="dda">
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={fanSpeed}
+              className="range"
+              step="10"
+              onChange={handleRangeChange}
+            />
+            <div className="w-full flex justify-between text-xs px-2">
+              <span>0</span>
+              <span>20</span>
+              <span>40</span>
+              <span>60</span>
+              <span>80</span>
+              <span>100</span>
+            </div>
+          </div>
+        </div>
+      </CardBody>
+    </Card>
   );
 };
 

@@ -356,11 +356,35 @@ router.post("publishData", (req, res) => {
   if (!topic || !value) {
     return res.status(400).json({ error: "Topic and value are required" });
   }
-  if (!retainFalse){
+  if (!retainFalse) {
     // set retain to false
     retainFalse = false;
   }
   client.publish(topic, value, { retain: retainFalse ? false : true });
   res.json({ message: "Data published successfully" });
 });
+
+router.get("/publishData", (req, res) => {
+  let { topic, value, retainFalse } = req.query;
+
+  // Ensure topic and value are provided
+  if (!topic || !value) {
+    return res.status(400).json({ error: "Topic and value are required" });
+  }
+  //check if value equal true or false change to 1 or 0
+  if (value === "true") {
+    value = "1";
+  } else if (value === "false") {
+    value = "0";
+  }
+  // Set retain flag based on retainFalse (defaults to true if retainFalse is not provided)
+  const retain = retainFalse === "true" ? false : true;
+
+  // Publish to MQTT broker
+  client.publish(topic, value, { retain });
+
+  // Respond with a success message
+  res.json({ message: "Data published successfully" });
+});
+
 module.exports = router;
