@@ -1,5 +1,3 @@
-// ChatPage.tsx
-
 "use client";
 import React, { useState, ChangeEvent, useRef, useEffect } from "react";
 import { CiUser } from "react-icons/ci";
@@ -469,7 +467,18 @@ const ChatPage: React.FC = () => {
             </Button>
           </form>
         </CardBody>
-        <CardFooter></CardFooter>
+        <CardFooter>
+          <Button
+            variant="shadow"
+            color="secondary"
+            className={`${chatHistory.length > 0 ? "" : "hidden"}`}
+            onClick={() => {
+              setChatHistory([]);
+            }}
+          >
+            Clear Chat
+          </Button>
+        </CardFooter>
       </Card>
     </div>
   );
