@@ -11,7 +11,7 @@
 
 /* Updated gradient text with modern colors and smoother animation */
 .gradient-text {
-  background: -webkit-linear-gradient(45deg, #FF6B6B, #04ffee, #45B7D1, #0da721);
+  background: -webkit-linear-gradient(45deg, #FF6B6B, #ffee04, #45B7D1, #0da721);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
