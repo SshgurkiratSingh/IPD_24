@@ -11,7 +11,7 @@ import "regenerator-runtime/runtime"; // Add this line
 
 export default function Home() {
   return (
-    <section className="flex flex-col items-center justify-center min-w-full min-h-full ">
+    <section className="flex flex-row items-center justify-center min-w-full min-h-full ">
       <ChatPage />
     </section>
   );
