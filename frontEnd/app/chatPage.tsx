@@ -21,6 +21,7 @@ import ChatHeader from "@/components/ChatHeader";
 
 // **Import the ChatMessage Component**
 import ChatMessage from "@/components/ChatMessage";
+import SuggestedQuestions from "@/components/SuggestedQuestions";
 
 // Initialize SpeechRecognition (Assuming it's used elsewhere)
 
@@ -187,19 +188,13 @@ const ChatPage: React.FC = () => {
           <div className="flex-1 overflow-y-auto mb-4 pr-2">
             {chatHistory.length === 0 ? (
               <div className="mt-4">
-                <p className="font-bold text-lg">Try asking:</p>
                 <div className="flex flex-wrap mt-2">
-                  {randomQuestions.map((question, idx) => (
-                    <Button
-                      key={idx}
-                      size="sm"
-                      variant="flat"
-                      className="m-1 bg-blue-600 hover:bg-blue-700 hover:animate-bounce gradient-text2"
-                      onClick={() => handleSuggestedQuestionClick(question)}
-                    >
-                      {question}
-                    </Button>
-                  ))}
+                  {
+                    <SuggestedQuestions
+                      questions={randomQuestions}
+                      onQuestionClick={handleSuggestedQuestionClick}
+                    />
+                  }
                 </div>
               </div>
             ) : (

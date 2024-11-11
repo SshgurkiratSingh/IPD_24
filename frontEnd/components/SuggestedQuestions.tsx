@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import { Button } from "@nextui-org/button";
 
 interface SuggestedQuestionsProps {
@@ -6,7 +6,10 @@ interface SuggestedQuestionsProps {
   onQuestionClick: (question: string) => void;
 }
 
-const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({ questions, onQuestionClick }) => {
+const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
+  questions,
+  onQuestionClick,
+}) => {
   return (
     <div className="mt-4">
       <p className="font-bold text-lg">Try asking:</p>
@@ -16,7 +19,7 @@ const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({ questions, onQu
             key={idx}
             size="sm"
             variant="flat"
-            className="m-1 bg-blue-600 hover:bg-blue-700 hover:animate-bounce gradient-text2"
+            className="m-1 bg-blue-600 hover:bg-blue-700  gradient-text2 border-1 border-blue-600"
             onClick={() => onQuestionClick(question)}
           >
             {question}
