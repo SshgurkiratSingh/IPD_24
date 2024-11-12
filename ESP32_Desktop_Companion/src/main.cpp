@@ -69,7 +69,7 @@ uint8_t selectedItem = 0;
 
 uint8_t upItem;
 uint8_t downItem;
-const char *mqtt_server = "192.168.1.100";
+const char *mqtt_server = "ec2-3-86-53-202.compute-1.amazonaws.com";
 float temp = 0;
 float hum = 0;
 // Items Configuration starts here
@@ -96,15 +96,15 @@ int currentValue[MAX_ITEMS] = {
     0,
     0,
 };
-const char topics[MAX_ITEMS][30] = {"room/light1", "room/fan1", "room/sw1", "room/brightness", "room/Temp", "room/Hum"};
+const char topics[MAX_ITEMS][30] = {"hall/light", "hall/fan", "hall/switchboard", "hall/brightness", "hall/temperature", "hall/humidity"};
 
 const bool isSensors[MAX_ITEMS] = {false, false, false, false, true, true};
 const bool isAlert[MAX_ITEMS] = {false, false, false, false, true, true};
 const uint8_t maxValues[MAX_ITEMS] = {1, 100, 1, 100};
 bool needUpdate = true;
 
-char SSID[32] = "Node ";           // Increased size for SSID
-char PASSWORD[32] = "whyitellyou"; // Increased size for Password
+char SSID[32] = "ConForNode1";  // Increased size for SSID
+char PASSWORD[32] = "12345678"; // Increased size for Password
 
 const char mode2Topics[2][30] = {"c/Song", "c/Artist"};
 String mode2Strings[2] = {"SongName", "Artist"};

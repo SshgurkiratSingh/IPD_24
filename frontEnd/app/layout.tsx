@@ -8,7 +8,7 @@ import { Providers } from "./providers";
 import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
 import { Navbar } from "@/components/navbar";
-
+import dynamic from "next/dynamic";
 
 export const viewport: Viewport = {
   themeColor: [
@@ -22,6 +22,7 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const VideoFeed = dynamic(() => import("./video-feed"), { ssr: false });
   return (
     <html suppressHydrationWarning lang="en">
       <head />

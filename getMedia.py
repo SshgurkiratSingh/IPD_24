@@ -11,6 +11,7 @@ NOTIFY_URGENCY = notify2.URGENCY_NORMAL
 ICON_PATH = "/home/gurkirat/Projects/IPD_24/genaiALert.webp"
 timeout_value = int(os.getenv("NOTIFICATION_TIMEOUT", 10000))
 
+
 def show_notification(message):
     """Show a notification with the given message
 
@@ -32,8 +33,9 @@ def show_notification(message):
             logging.error(
                 f"An error occurred while sending the notification: {e}")
 
+
 class MQTTClient:
-    def __init__(self, broker="localhost", port=1883):
+    def __init__(self, broker="ec2-3-86-53-202.compute-1.amazonaws.com", port=1883):
         """Initialize MQTT client"""
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
         self.broker = broker
@@ -134,6 +136,7 @@ class MQTTClient:
         self.client.loop_stop()
         self.client.disconnect()
 
+
 def get_player_info(mqtt_client):
     bus = dbus.SessionBus()
     last_title = None
@@ -178,9 +181,11 @@ def get_player_info(mqtt_client):
 
         time.sleep(1)  # Wait 1 second before checking again
 
+
 if __name__ == "__main__":
     # Initialize MQTT client
-    mqtt_client = MQTTClient(broker="localhost", port=1883)
+    mqtt_client = MQTTClient(
+        broker="ec2-3-86-53-202.compute-1.amazonaws.com", port=1883)
 
     # Connect to MQTT broker
     if mqtt_client.connect():
