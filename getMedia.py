@@ -1,32 +1,59 @@
 import dbus
 import time
 import paho.mqtt.client as mqtt
+import notify2
+import logging
+import os
 
+APP_NAME = "Notification from Generative AI"
+NOTIFICATION_TITLE = "GenAI Alerts"
+NOTIFY_URGENCY = notify2.URGENCY_NORMAL
+ICON_PATH = "/home/gurkirat/Projects/IPD_24/genaiALert.webp"
+timeout_value = int(os.getenv("NOTIFICATION_TIMEOUT", 10000))
+
+def show_notification(message):
+    """Show a notification with the given message
+
+    Args:
+        message (str): Message to show in notification
+    """
+    if notify2.init(APP_NAME):
+        n = notify2.Notification(
+            NOTIFICATION_TITLE, message, ICON_PATH)
+        n.set_urgency(NOTIFY_URGENCY)
+        n.set_timeout(timeout_value)
+
+        try:
+            if n.show():
+                logging.info("Notification shown successfully")
+            else:
+                logging.error("Failed to show notification")
+        except Exception as e:
+            logging.error(
+                f"An error occurred while sending the notification: {e}")
 
 class MQTTClient:
-    def __init__(self, broker="ec2-3-86-53-202.compute-1.amazonaws.com", port=1883):
+    def __init__(self, broker="localhost", port=1883):
         """Initialize MQTT client"""
-        self.client = mqtt.Client()
+        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
         self.broker = broker
         self.port = port
         self.current_player = None
         self.bus = dbus.SessionBus()
-        self.connected = False
 
         # Set up callbacks
         self.client.on_connect = self._on_connect
         self.client.on_message = self._on_message
 
-    def _on_connect(self, client, userdata, flags, rc):
+    def _on_connect(self, client, userdata, flags, reason_code, properties=None):
         """Callback when client connects"""
-        if rc == 0:
+        if reason_code == 0:
             print(f"Connected to MQTT broker at {self.broker}")
-            self.connected = True
             # Subscribe to topic after connection
             self.client.subscribe("c/playbackcontrol")
+            self.client.subscribe("mobNoti")
         else:
-            print(f"Connection failed with code: {rc}")
-            self.connected = False
+            print(f"Connection failed with code: {reason_code}")
 
     def _on_message(self, client, userdata, msg):
         """Callback when message is received"""
@@ -35,6 +62,8 @@ class MQTTClient:
 
         if msg.topic == "c/playbackcontrol":
             self.handle_playback_command(command)
+        if msg.topic == "mobNoti":
+            show_notification(msg.payload.decode())
 
     def handle_playback_command(self, command):
         """Handle playback control commands"""
@@ -86,24 +115,16 @@ class MQTTClient:
         try:
             self.client.connect(self.broker, self.port)
             self.client.loop_start()
-            self.connected = True
+            return True
         except Exception as e:
             print(f"Connection error: {e}")
-            self.connected = False
-
-    def reconnect_periodically(self):
-        """Reconnect to MQTT broker every minute if not connected"""
-        while True:
-            if not self.connected:
-                print("Attempting to reconnect to MQTT broker...")
-                self.connect()
-            time.sleep(60)  # Wait for 1 minute before checking again
+            return False
 
     def publish_data(self, data1: str, data2: str):
         """Publish data to two different topics"""
         try:
-            self.client.publish("sensor/temp", data1)
-            self.client.publish("sensor/humidity", data2)
+            self.client.publish("c/Temperature", data1)
+            self.client.publish("c/Humidity", data2)
             print(f"Published: Temperature={data1}, Humidity={data2}")
         except Exception as e:
             print(f"Publishing error: {e}")
@@ -112,19 +133,10 @@ class MQTTClient:
         """Disconnect from MQTT broker"""
         self.client.loop_stop()
         self.client.disconnect()
-        self.connected = False
 
-
-def get_player_info():
+def get_player_info(mqtt_client):
     bus = dbus.SessionBus()
     last_title = None
-    mqtt_client = MQTTClient()
-    mqtt_client.connect()
-
-    # Start a separate thread for periodic reconnection
-    import threading
-    threading.Thread(target=mqtt_client.reconnect_periodically,
-                     daemon=True).start()
 
     while True:
         for service in bus.list_names():
@@ -154,6 +166,7 @@ def get_player_info():
                         print(f"Title: {title}")
                         print(f"Artist: {artists}")
 
+                        # Corrected publish method call
                         mqtt_client.client.publish("c/Song", title)
                         mqtt_client.client.publish("c/Artist", artist_string)
                         last_title = title
@@ -165,6 +178,19 @@ def get_player_info():
 
         time.sleep(1)  # Wait 1 second before checking again
 
-
 if __name__ == "__main__":
-    get_player_info()
+    # Initialize MQTT client
+    mqtt_client = MQTTClient(broker="localhost", port=1883)
+
+    # Connect to MQTT broker
+    if mqtt_client.connect():
+        print("MQTT client connected and subscribed to topics.")
+    else:
+        print("Failed to connect MQTT client.")
+
+    # Start getting player information and interacting with MQTT
+    try:
+        get_player_info(mqtt_client)
+    except KeyboardInterrupt:
+        print("Stopping player info retrieval and disconnecting from MQTT.")
+        mqtt_client.disconnect()

@@ -2,8 +2,7 @@
 import { Button } from "@nextui-org/button";
 import { Card, CardBody, CardFooter, CardHeader } from "@nextui-org/card";
 import { Divider } from "@nextui-org/divider";
-import React, { useState, ChangeEvent, FormEvent, useRef, useCallback, lazy, Suspense } from "react";
-import { useTasksData } from "../hooks/useTasksData";
+import React, { useEffect, useState, ChangeEvent, FormEvent } from "react";
 import {
   Modal,
   ModalContent,
@@ -19,18 +18,18 @@ import {
   TableRow,
   TableCell,
 } from "@nextui-org/table";
-import { FaTrashAlt, FaPlus, FaExclamationTriangle } from "react-icons/fa";
+import {
+  FaTrashAlt,
+  FaPlus,
+  FaClock,
+  FaBolt,
+  FaInfoCircle,
+} from "react-icons/fa";
 import { CiRepeat } from "react-icons/ci";
 
 import { Select, SelectSection, SelectItem } from "@nextui-org/select";
 import { Input } from "@nextui-org/input";
-import { Skeleton } from "@nextui-org/skeleton";
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { Spinner } from "@nextui-org/spinner";
-
-const FaClock = lazy(() => import('react-icons/fa').then(module => ({ default: module.FaClock })));
-const FaBolt = lazy(() => import('react-icons/fa').then(module => ({ default: module.FaBolt })));
-const FaInfoCircle = lazy(() => import('react-icons/fa').then(module => ({ default: module.FaInfoCircle })));
+import { CircularProgress } from "@nextui-org/progress";
 
 interface Action {
   mqttTopic: string;
@@ -55,8 +54,9 @@ interface Task {
 }
 
 export default function ControlPanel() {
-  const { tasks, isLoading, error, mutate } = useTasksData();
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [actionLoading, setActionLoading] = useState<boolean>(false); // Loading state for create/delete actions
 
   // State for modal visibility
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -68,22 +68,6 @@ export default function ControlPanel() {
     action: [{ mqttTopic: "", value: "" }],
     trigger: { topic: "", value: "" },
   });
-
-  // Add a callback for SWR to track background refreshes
-  const onSuccess = useCallback(() => {
-    setIsRefreshing(false);
-  }, []);
-
-  const refreshData = useCallback(() => {
-    setIsRefreshing(true);
-    mutate().then(onSuccess);
-  }, [mutate, onSuccess]);
-
-  // Refresh data every 30 seconds
-  React.useEffect(() => {
-    const interval = setInterval(refreshData, 30000);
-    return () => clearInterval(interval);
-  }, [refreshData]);
 
   // Helper function to convert Unix timestamp to datetime-local string
   const unixToDateTimeLocal = (unix: number | undefined): string => {
@@ -100,28 +84,44 @@ export default function ControlPanel() {
     return Math.floor(date.getTime() / 1000);
   };
 
-  if (error) {
-    console.error("Error fetching tasks:", error);
-  }
+  // Fetch tasks from the backend API
+  useEffect(() => {
+    const fetchTasks = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/v2");
+        if (!res.ok) {
+          throw new Error("Failed to fetch tasks");
+        }
+        const data = await res.json();
+        setTasks(data);
+      } catch (error) {
+        console.error("Error fetching tasks:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTasks();
+  }, []);
 
   // Handler for deleting a task
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const handleDelete = (id: number) => {
-    setDeleteError(null);
-    fetch(`/api/v2/${id}`, {
-      method: "DELETE",
-    })
-      .then((res) => {
-        if (res.ok) {
-          mutate(); // Trigger a re-fetch of the tasks
-        } else {
-          throw new Error("Failed to delete task");
-        }
-      })
-      .catch((error) => {
-        console.error("Error deleting task:", error);
-        setDeleteError("Failed to delete task. Please try again.");
+  const handleDelete = async (id: number) => {
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/v2/${id}`, {
+        method: "DELETE",
       });
+      if (res.ok) {
+        setTasks(tasks.filter((task) => task.id !== id));
+      } else {
+        console.error("Failed to delete task");
+      }
+    } catch (error) {
+      console.error("Error deleting task:", error);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   // Handler for opening the modal to create a new task
@@ -142,39 +142,34 @@ export default function ControlPanel() {
   };
 
   // Handler for form submission
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setSubmitError(null);
+    setActionLoading(true);
 
     // Prepare data to send to the backend
     const data = { ...formData };
     // No need to convert time fields here as they are already in Unix timestamp
 
-    fetch("/api/v2/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    })
-      .then((res) => {
-        if (res.ok) {
-          // Refresh the task list
-          return res.json();
-        } else {
-          throw new Error("Failed to create task");
-        }
-      })
-      .then(() => {
-        // Close the modal and refresh the task list
-        handleCloseModal();
-        mutate(); // Trigger a re-fetch of the tasks
-      })
-      .catch((error) => {
-        console.error("Error creating task:", error);
-        setSubmitError("Failed to create task. Please try again.");
+    try {
+      const res = await fetch("/api/v2/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
       });
+      if (!res.ok) {
+        throw new Error("Failed to create task");
+      }
+      // Refresh the task list
+      const newTask = await res.json();
+      setTasks((prevTasks) => [...prevTasks, newTask]);
+      handleCloseModal();
+    } catch (error) {
+      console.error("Error creating task:", error);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   // Handler for form input changes
@@ -204,6 +199,12 @@ export default function ControlPanel() {
           ...prevData,
           time: dateTimeLocalToUnix(value),
         } as Task;
+      } else if (name === "repeatTime" || name === "limit") {
+        // Handle number inputs
+        return {
+          ...prevData,
+          [name]: value ? parseInt(value, 10) : undefined,
+        } as Task;
       } else {
         return { ...prevData, [name]: value } as Task;
       }
@@ -219,11 +220,13 @@ export default function ControlPanel() {
   };
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">Control Panel</h2>
-        <div className="flex items-center">
-          {isRefreshing && <Spinner size="sm" color="primary" className="mr-2" />}
+    <>
+      {/* Global Loading Bar */}
+      {loading && <CircularProgress aria-label="Loading..." />}
+
+      <Card>
+        <CardHeader className="flex justify-between items-center">
+          <h2 className="text-xl font-bold">Control Panel</h2>
           <Button
             color="primary"
             onClick={handleOpenModal}
@@ -231,55 +234,39 @@ export default function ControlPanel() {
           >
             Add Task
           </Button>
-        </div>
-      </CardHeader>
-      <Divider />
-      <CardBody className="overflow-hidden">
-        {isLoading ? (
-          <div>
-            {[...Array(5)].map((_, index) => (
-              <Skeleton key={index} className="h-12 w-full mb-2" />
-            ))}
-          </div>
-        ) : error ? (
-          <div className="text-danger flex items-center">
-            <FaExclamationTriangle className="mr-2" />
-            <span>Error loading tasks. Please try again later.</span>
-          </div>
-        ) : tasks.length === 0 ? (
-          <p>No tasks available.</p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableColumn>ID</TableColumn>
-              <TableColumn>Type</TableColumn>
-              <TableColumn>Time/Trigger</TableColumn>
-              <TableColumn>Actions</TableColumn>
-              <TableColumn>Options</TableColumn>
-            </TableHeader>
-            <TableBody>
-              {useVirtualizer({
-                count: tasks.length,
-                getScrollElement: () => document.querySelector('.nextui-table-body'),
-                estimateSize: useCallback(() => 50, []),
-                overscan: 5,
-              }).getVirtualItems().map((virtualRow) => {
-                const task = tasks[virtualRow.index];
-                return (
+        </CardHeader>
+        <Divider />
+        <CardBody>
+          {loading ? (
+            <div className="flex justify-center items-center py-10">
+              <CircularProgress aria-label="Loading..." />
+              <span className="ml-2">Loading tasks...</span>
+            </div>
+          ) : tasks.length === 0 ? (
+            <p>No tasks available.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableColumn>ID</TableColumn>
+                <TableColumn>Type</TableColumn>
+                <TableColumn>Time/Trigger</TableColumn>
+                <TableColumn>Actions</TableColumn>
+                <TableColumn>Options</TableColumn>
+              </TableHeader>
+              <TableBody>
+                {tasks.map((task) => (
                   <TableRow key={task.id}>
                     <TableCell>{task.id}</TableCell>
                     <TableCell>
-                      <Suspense fallback={<Spinner size="sm" />}>
-                        {task.taskType === "one-time" && (
-                          <FaClock className="inline mr-2" />
-                        )}
-                        {task.taskType === "repetitive" && (
-                          <CiRepeat className="inline mr-2" />
-                        )}
-                        {task.taskType === "trigger-based" && (
-                          <FaBolt className="inline mr-2" />
-                        )}
-                      </Suspense>
+                      {task.taskType === "one-time" && (
+                        <FaClock className="inline mr-2" />
+                      )}
+                      {task.taskType === "repetitive" && (
+                        <CiRepeat className="inline mr-2" />
+                      )}
+                      {task.taskType === "trigger-based" && (
+                        <FaBolt className="inline mr-2" />
+                      )}
                       {task.taskType}
                     </TableCell>
                     <TableCell>
@@ -289,7 +276,9 @@ export default function ControlPanel() {
                           {task.trigger?.value}
                         </span>
                       ) : task.time ? (
-                        <span>{new Date(task.time * 1000).toLocaleString()}</span>
+                        <span>
+                          {new Date(task.time * 1000).toLocaleString()}
+                        </span>
                       ) : (
                         <span>N/A</span>
                       )}
@@ -307,199 +296,208 @@ export default function ControlPanel() {
                         variant="light"
                         onClick={() => handleDelete(task.id)}
                         startContent={<FaTrashAlt />}
+                        disabled={actionLoading} // Disable while loading
                       >
-                        Delete
+                        {actionLoading ? (
+                          <CircularProgress aria-label="Loading..." />
+                        ) : (
+                          "Delete"
+                        )}
                       </Button>
                       {/* Add Edit Button if needed */}
                     </TableCell>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        )}
-      </CardBody>
-      <Divider />
-      <CardFooter>
-        {deleteError && (
-          <div className="text-danger flex items-center">
-            <FaExclamationTriangle className="mr-2" />
-            <span>{deleteError}</span>
-          </div>
-        )}
-      </CardFooter>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardBody>
+        <Divider />
+        <CardFooter>{/* You can add footer content here */}</CardFooter>
 
-      {/* Modal for creating a new task */}
-      <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader>Create New Task</ModalHeader>
-              <form onSubmit={handleSubmit}>
-                <ModalBody>
-                  <Select
-                    label="Task Type"
-                    name="taskType"
-                    selectedKeys={new Set([formData.taskType])}
-                    onSelectionChange={(keys) => {
-                      const selectedTaskType = Array.from(keys).join("");
-                      setFormData((prevData) => ({
-                        ...prevData,
-                        taskType: selectedTaskType,
-                      }));
-                    }}
-                  >
-                    <SelectItem key="one-time" startContent={<FaClock />}>
-                      One-Time
-                    </SelectItem>
-                    <SelectItem key="repetitive" startContent={<CiRepeat />}>
-                      Repetitive
-                    </SelectItem>
-                    <SelectItem key="trigger-based" startContent={<FaBolt />}>
-                      Trigger-Based
-                    </SelectItem>
-                  </Select>
+        {/* Modal for creating a new task */}
+        <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
+          <ModalContent>
+            {(onClose) => (
+              <>
+                <ModalHeader>Create New Task</ModalHeader>
+                <form onSubmit={handleSubmit}>
+                  <ModalBody>
+                    <Select
+                      label="Task Type"
+                      name="taskType"
+                      selectedKeys={new Set([formData.taskType])}
+                      onSelectionChange={(keys) => {
+                        const selectedTaskType = Array.from(keys).join("");
+                        setFormData((prevData) => ({
+                          ...prevData,
+                          taskType: selectedTaskType,
+                        }));
+                      }}
+                    >
+                      <SelectItem key="one-time" startContent={<FaClock />}>
+                        One-Time
+                      </SelectItem>
+                      <SelectItem key="repetitive" startContent={<CiRepeat />}>
+                        Repetitive
+                      </SelectItem>
+                      <SelectItem key="trigger-based" startContent={<FaBolt />}>
+                        Trigger-Based
+                      </SelectItem>
+                    </Select>
 
-                  {/* Conditional rendering based on task type */}
-                  {formData.taskType !== "trigger-based" && (
-                    <Input
-                      label="Time"
-                      name="time"
-                      type="datetime-local"
-                      value={unixToDateTimeLocal(formData.time)}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  )}
-
-                  {formData.taskType === "repetitive" && (
-                    <Input
-                      label="Repeat Time (seconds)"
-                      name="repeatTime"
-                      type="number"
-                      value={
-                        formData.repeatTime
-                          ? formData.repeatTime.toString()
-                          : ""
-                      }
-                      onChange={handleInputChange}
-                      required
-                    />
-                  )}
-
-                  {formData.taskType === "trigger-based" && (
-                    <>
+                    {/* Conditional rendering based on task type */}
+                    {formData.taskType !== "trigger-based" && (
                       <Input
-                        label="Trigger Topic"
-                        name="trigger.topic"
-                        value={formData.trigger?.topic || ""}
+                        label="Time"
+                        name="time"
+                        type="datetime-local"
+                        value={unixToDateTimeLocal(formData.time)}
                         onChange={handleInputChange}
                         required
-                        startContent={
-                          <Suspense fallback={<Spinner size="sm" />}>
-                            <FaBolt className="text-default-400 pointer-events-none flex-shrink-0" />
-                          </Suspense>
-                        }
+                        fullWidth
                       />
+                    )}
+
+                    {formData.taskType === "repetitive" && (
                       <Input
-                        label="Trigger Value"
-                        name="trigger.value"
-                        value={formData.trigger?.value || ""}
-                        onChange={handleInputChange}
-                        required
-                        startContent={
-                          <Suspense fallback={<Spinner size="sm" />}>
-                            <FaInfoCircle className="text-default-400 pointer-events-none flex-shrink-0" />
-                          </Suspense>
-                        }
-                      />
-                      <Input
-                        label="Condition"
-                        name="condition"
-                        value={formData.condition || ""}
-                        onChange={handleInputChange}
-                        placeholder="e.g., >, <, =, contains"
-                        required
-                        startContent={
-                          <FaInfoCircle className="text-default-400 pointer-events-none flex-shrink-0" />
-                        }
-                      />
-                      <Input
-                        label="Execution Limit"
-                        name="limit"
+                        label="Repeat Time (seconds)"
+                        name="repeatTime"
                         type="number"
-                        value={formData.limit ? formData.limit.toString() : ""}
-                        onChange={handleInputChange}
-                        startContent={
-                          <FaInfoCircle className="text-default-400 pointer-events-none flex-shrink-0" />
+                        value={
+                          formData.repeatTime
+                            ? formData.repeatTime.toString()
+                            : ""
                         }
+                        onChange={handleInputChange}
+                        required
+                        fullWidth
                       />
-                    </>
-                  )}
+                    )}
 
-                  {/* Actions */}
-                  <div>
-                    <h3 className="font-semibold">Actions</h3>
-                    {formData.action.map((action, index) => (
-                      <div key={index} className="flex gap-2 mb-2">
+                    {formData.taskType === "trigger-based" && (
+                      <>
                         <Input
-                          label="MQTT Topic"
-                          name={`action.${index}.mqttTopic`}
-                          value={action.mqttTopic}
+                          label="Trigger Topic"
+                          name="trigger.topic"
+                          value={formData.trigger?.topic || ""}
                           onChange={handleInputChange}
                           required
                           startContent={
                             <FaBolt className="text-default-400 pointer-events-none flex-shrink-0" />
                           }
+                          fullWidth
                         />
                         <Input
-                          label="Value"
-                          name={`action.${index}.value`}
-                          value={action.value}
+                          label="Trigger Value"
+                          name="trigger.value"
+                          value={formData.trigger?.value || ""}
                           onChange={handleInputChange}
                           required
                           startContent={
                             <FaInfoCircle className="text-default-400 pointer-events-none flex-shrink-0" />
                           }
+                          fullWidth
                         />
-                      </div>
-                    ))}
+                        <Input
+                          label="Condition"
+                          name="condition"
+                          value={formData.condition || ""}
+                          onChange={handleInputChange}
+                          placeholder="e.g., >, <, =, contains"
+                          required
+                          startContent={
+                            <FaInfoCircle className="text-default-400 pointer-events-none flex-shrink-0" />
+                          }
+                          fullWidth
+                        />
+                        <Input
+                          label="Execution Limit"
+                          name="limit"
+                          type="number"
+                          value={
+                            formData.limit ? formData.limit.toString() : ""
+                          }
+                          onChange={handleInputChange}
+                          startContent={
+                            <FaInfoCircle className="text-default-400 pointer-events-none flex-shrink-0" />
+                          }
+                          fullWidth
+                        />
+                      </>
+                    )}
+
+                    {/* Actions */}
+                    <div className="mt-4">
+                      <h3 className="font-semibold mb-2">Actions</h3>
+                      {formData.action.map((action, index) => (
+                        <div key={index} className="flex gap-2 mb-2">
+                          <Input
+                            label="MQTT Topic"
+                            name={`action.${index}.mqttTopic`}
+                            value={action.mqttTopic}
+                            onChange={handleInputChange}
+                            required
+                            startContent={
+                              <FaBolt className="text-default-400 pointer-events-none flex-shrink-0" />
+                            }
+                            fullWidth
+                          />
+                          <Input
+                            label="Value"
+                            name={`action.${index}.value`}
+                            value={action.value}
+                            onChange={handleInputChange}
+                            required
+                            startContent={
+                              <FaInfoCircle className="text-default-400 pointer-events-none flex-shrink-0" />
+                            }
+                            fullWidth
+                          />
+                        </div>
+                      ))}
+                      <Button
+                        variant="light"
+                        onClick={handleAddAction}
+                        startContent={<FaPlus />}
+                        size="sm"
+                      >
+                        Add Action
+                      </Button>
+                    </div>
+                  </ModalBody>
+                  <ModalFooter>
                     <Button
                       variant="light"
-                      onClick={handleAddAction}
-                      startContent={<FaPlus />}
+                      onClick={handleCloseModal}
+                      startContent={<FaTrashAlt />}
+                      disabled={actionLoading} // Disable while loading
                     >
-                      Add Action
+                      {actionLoading ? (
+                        <CircularProgress aria-label="Loading..." />
+                      ) : (
+                        "Cancel"
+                      )}
                     </Button>
-                  </div>
-                </ModalBody>
-                <ModalFooter>
-                  {submitError && (
-                    <div className="text-danger flex items-center mb-2">
-                      <FaExclamationTriangle className="mr-2" />
-                      <span>{submitError}</span>
-                    </div>
-                  )}
-                  <Button
-                    variant="light"
-                    onClick={handleCloseModal}
-                    startContent={<FaTrashAlt />}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    color="primary"
-                    type="submit"
-                    startContent={<FaPlus />}
-                  >
-                    Create Task
-                  </Button>
-                </ModalFooter>
-              </form>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
-    </Card>
+                    <Button
+                      color="primary"
+                      type="submit"
+                      startContent={<FaPlus />}
+                      disabled={actionLoading} // Disable while loading
+                    >
+                      {actionLoading ? (
+                        <CircularProgress aria-label="Loading..." />
+                      ) : (
+                        "Create Task"
+                      )}
+                    </Button>
+                  </ModalFooter>
+                </form>
+              </>
+            )}
+          </ModalContent>
+        </Modal>
+      </Card>
+    </>
   );
 }

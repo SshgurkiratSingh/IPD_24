@@ -65,7 +65,7 @@ const ToggleButton = ({
     const encodedTopic = encodeURIComponent(topic);
     try {
       const response = await fetch(
-        `http://192.168.1.100:2500/api/v1/publishData?value=${invertedValue}&topic=${encodedTopic}`,
+        `/api/v1/publishData?value=${invertedValue}&topic=${encodedTopic}`,
         {
           method: "GET",
           headers: {
