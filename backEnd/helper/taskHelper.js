@@ -8,8 +8,10 @@ const client = mqtt.connect("mqtt://localhost:1883"); // Use your MQTT broker ad
 // Constants
 const UNLIMITED_LIMIT = 696969;
 
-// In-memory map to keep track of trigger-based tasks
+// In-memory maps to keep track of trigger-based tasks and scheduled timeouts/intervals
 const triggersMap = {};
+const scheduledTimeouts = new Map(); // For one-time tasks
+const scheduledIntervals = new Map(); // For repetitive tasks
 
 // Connect to MQTT Broker
 client.on("connect", () => {
@@ -57,6 +59,19 @@ client.on("message", async (topic, message) => {
                 task.id
               }`
             );
+
+            // If the task has a limit and reached it, consider deleting or deactivating it
+            if (
+              task.executedCount + 1 >= task.limit &&
+              task.limit !== UNLIMITED_LIMIT
+            ) {
+              console.log(
+                `[${new Date().toISOString()}] Task ID ${
+                  task.id
+                } has reached its execution limit and will be deleted`
+              );
+              await deleteTask(task.id);
+            }
           } else {
             console.warn(
               `[${new Date().toISOString()}] Execution failed for task ID ${
@@ -86,6 +101,39 @@ client.on("message", async (topic, message) => {
     );
   }
 });
+async function getAllTasks() {
+  try {
+    const tasks = await prisma.task.findMany({
+      include: {
+        executions: true, // Include execution logs if needed
+      },
+    });
+    return tasks;
+  } catch (error) {
+    console.error(
+      `[${new Date().toISOString()}] Error fetching all tasks:`,
+      error.message
+    );
+    throw error;
+  }
+}
+async function getTaskById(taskId) {
+  try {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        executions: true, // Include execution logs if needed
+      },
+    });
+    return task;
+  } catch (error) {
+    console.error(
+      `[${new Date().toISOString()}] Error fetching task ID ${taskId}:`,
+      error.message
+    );
+    throw error;
+  }
+}
 
 /**
  * Evaluates the condition based on message value, trigger value, and the condition operator.
@@ -207,6 +255,12 @@ async function scheduleTask(taskInput) {
     );
   }
 }
+
+/**
+ * Parses the condition and value from a trigger value string.
+ * @param {string} value - The trigger value string.
+ * @returns {Object} - An object containing the condition and the parsed value.
+ */
 function parseCondition(value) {
   const operators = [
     "startsWith",
@@ -346,7 +400,12 @@ async function scheduleOneTimeTask(task) {
 
     // Schedule execution
     const delay = (savedTask.time - Math.floor(Date.now() / 1000)) * 1000;
-    setTimeout(() => executeTask(savedTask), delay);
+    const timeout = setTimeout(async () => {
+      await executeTask(savedTask);
+      scheduledTimeouts.delete(savedTask.id); // Clean up after execution
+    }, delay);
+    scheduledTimeouts.set(savedTask.id, timeout);
+
     console.log(
       `[${new Date().toISOString()}] One-time task ID ${
         savedTask.id
@@ -401,7 +460,9 @@ async function scheduleRepetitiveTask(task) {
 
     // Schedule first execution
     const delay = (savedTask.time - Math.floor(Date.now() / 1000)) * 1000;
-    setTimeout(() => executeRepetitiveTask(savedTask), delay);
+    const timeout = setTimeout(() => executeRepetitiveTask(savedTask), delay);
+    scheduledTimeouts.set(savedTask.id, timeout);
+
     console.log(
       `[${new Date().toISOString()}] Repetitive task ID ${
         savedTask.id
@@ -428,7 +489,8 @@ function executeRepetitiveTask(task) {
       if (success) {
         // Schedule next execution only if the current execution was successful
         const interval = task.repeatTime * 1000; // Convert seconds to milliseconds
-        setInterval(() => executeTask(task), interval);
+        const intervalId = setInterval(() => executeTask(task), interval);
+        scheduledIntervals.set(task.id, intervalId);
         console.log(
           `[${new Date().toISOString()}] Repetitive task ID ${
             task.id
@@ -458,10 +520,6 @@ function executeRepetitiveTask(task) {
  */
 async function scheduleTriggerBasedTask(task) {
   try {
-    // check if condition is other than < or > or =
-    // This code checks if the task.condition is not one of the valid comparison operators (<, >, =)
-    // If the condition is invalid, it defaults to the equals (=) operator
-   
     console.log(
       `[${new Date().toISOString()}] Scheduling trigger-based task:`,
       task
@@ -486,29 +544,35 @@ async function scheduleTriggerBasedTask(task) {
     );
 
     // Subscribe to the trigger topic if not already subscribed
-    if (!client.connected) {
-      console.warn(
-        `[${new Date().toISOString()}] MQTT client is not connected. Cannot subscribe to topic "${
-          task.trigger.topic
-        }"`
-      );
-    } else {
-      client.subscribe(task.trigger.topic, (err) => {
-        if (err) {
-          console.error(
-            `[${new Date().toISOString()}] Failed to subscribe to topic "${
-              task.trigger.topic
-            }":`,
-            err.message
-          );
-        } else {
-          console.log(
-            `[${new Date().toISOString()}] Subscribed to topic "${
-              task.trigger.topic
-            }"`
-          );
-        }
-      });
+    const topicsToSubscribe = new Set();
+    const subscribedTopics = new Set();
+
+    // Collect all unique trigger topics from existing trigger-based tasks
+    const allTriggerTasks = await prisma.task.findMany({
+      where: {
+        taskType: "trigger-based",
+      },
+    });
+
+    allTriggerTasks.forEach((t) => topicsToSubscribe.add(t.triggerTopic));
+
+    // Subscribe to each unique topic
+    for (const topic of topicsToSubscribe) {
+      if (!subscribedTopics.has(topic)) {
+        client.subscribe(topic, (err) => {
+          if (err) {
+            console.error(
+              `[${new Date().toISOString()}] Failed to subscribe to topic "${topic}":`,
+              err.message
+            );
+          } else {
+            console.log(
+              `[${new Date().toISOString()}] Subscribed to topic "${topic}"`
+            );
+            subscribedTopics.add(topic);
+          }
+        });
+      }
     }
 
     // Add to triggers map
@@ -604,7 +668,487 @@ async function executeTask(task) {
   }
 }
 
-// Export the scheduleTask function for external use
+/**
+ * Deletes a task by its ID.
+ * @param {number} taskId - The ID of the task to delete.
+ */
+/**
+ * Deletes a task by its ID.
+ * @param {number} taskId - The ID of the task to delete.
+ */
+/**
+ * Deletes a task by its ID.
+ * @param {string} taskId - The ID of the task to delete.
+ */
+async function deleteTask(taskId) {
+  try {
+    // Fetch the task from the database
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+    });
+
+    if (!task) {
+      console.warn(
+        `[${new Date().toISOString()}] Task ID ${taskId} does not exist.`
+      );
+      return; // Exit the function as there's nothing to delete
+    }
+
+    // Proceed with deletion as per task type
+    // ... (rest of your deletion logic)
+
+    // Delete related TaskExecution records before deleting the Task
+    const deletedExecutions = await prisma.taskExecution.deleteMany({
+      where: {
+        taskId: taskId,
+      },
+    });
+
+    console.log(
+      `[${new Date().toISOString()}] Deleted ${
+        deletedExecutions.count
+      } TaskExecution record(s) for Task ID ${taskId}`
+    );
+
+    // Cancel scheduled timeouts or intervals based on task type
+    if (task.taskType === "one-time") {
+      const timeout = scheduledTimeouts.get(taskId);
+      if (timeout) {
+        clearTimeout(timeout);
+        scheduledTimeouts.delete(taskId);
+        console.log(
+          `[${new Date().toISOString()}] Cleared timeout for one-time task ID ${taskId}`
+        );
+      }
+    } else if (task.taskType === "repetitive") {
+      const interval = scheduledIntervals.get(taskId);
+      if (interval) {
+        clearInterval(interval);
+        scheduledIntervals.delete(taskId);
+        console.log(
+          `[${new Date().toISOString()}] Cleared interval for repetitive task ID ${taskId}`
+        );
+      }
+    } else if (task.taskType === "trigger-based") {
+      // Remove from triggersMap
+      delete triggersMap[taskId];
+      console.log(
+        `[${new Date().toISOString()}] Removed trigger-based task ID ${taskId} from triggersMap`
+      );
+
+      // Check if any other tasks are using the same MQTT topic
+      const remainingTasks = await prisma.task.findMany({
+        where: {
+          triggerTopic: task.triggerTopic,
+        },
+      });
+
+      if (remainingTasks.length === 0) {
+        client.unsubscribe(task.triggerTopic, (err) => {
+          if (err) {
+            console.error(
+              `[${new Date().toISOString()}] Failed to unsubscribe from topic "${
+                task.triggerTopic
+              }":`,
+              err.message
+            );
+          } else {
+            console.log(
+              `[${new Date().toISOString()}] Unsubscribed from topic "${
+                task.triggerTopic
+              }"`
+            );
+          }
+        });
+      }
+    }
+
+    // Delete the task from the database
+    await prisma.task.delete({
+      where: { id: taskId },
+    });
+
+    console.log(
+      `[${new Date().toISOString()}] Task ID ${taskId} deleted successfully`
+    );
+  } catch (error) {
+    console.error(
+      `[${new Date().toISOString()}] Error deleting task ID ${taskId}:`,
+      error.message
+    );
+  }
+}
+
+/**
+ * Updates a task by its ID with new data.
+ * @param {number} taskId - The ID of the task to update.
+ * @param {Object} updatedData - An object containing the fields to update.
+ */
+async function updateTask(taskId, updatedData) {
+  try {
+    // Fetch the existing task
+    const existingTask = await prisma.task.findUnique({
+      where: { id: taskId },
+    });
+
+    if (!existingTask) {
+      console.warn(
+        `[${new Date().toISOString()}] Task ID ${taskId} does not exist.`
+      );
+      return;
+    }
+
+    // Delete the current scheduling
+    await deleteTask(taskId);
+
+    // Merge existing task data with updated data
+    const newTaskData = { ...existingTask, ...updatedData };
+
+    // Remove fields that shouldn't be manually set (like ID)
+    delete newTaskData.id;
+    delete newTaskData.executedCount;
+
+    // Validate the updated task
+    validateTask(newTaskData);
+
+    // Reschedule the task with updated data
+    await scheduleTask({ id: taskId, ...newTaskData });
+
+    console.log(
+      `[${new Date().toISOString()}] Task ID ${taskId} updated successfully`
+    );
+  } catch (error) {
+    console.error(
+      `[${new Date().toISOString()}] Error updating task ID ${taskId}:`,
+      error.message
+    );
+  }
+}
+
+/**
+ * Parses the condition and value from a trigger value string.
+ * @param {string} value - The trigger value string.
+ * @returns {Object} - An object containing the condition and the parsed value.
+ */
+function parseCondition(value) {
+  const operators = [
+    "startsWith",
+    "contains",
+    "matches",
+    "<=",
+    ">=",
+    "!=",
+    "<",
+    ">",
+    "=",
+  ];
+  for (const operator of operators) {
+    if (value.startsWith(operator)) {
+      const operand = value.slice(operator.length).trim();
+      return {
+        condition: operator,
+        value: operand,
+      };
+    }
+  }
+  // If no operator is found, default to "="
+  return {
+    condition: "=",
+    value: value,
+  };
+}
+
+/**
+ * Validates the task object to ensure all required fields are present.
+ * @param {Object} task - The task object to validate.
+ * @throws Will throw an error if validation fails.
+ */
+function validateTask(task) {
+  const validConditions = [
+    "<",
+    ">",
+    "=",
+    "<=",
+    ">=",
+    "!=",
+    "startsWith",
+    "contains",
+    "matches",
+  ];
+
+  if (!task.taskType) {
+    throw new Error("taskType is required");
+  }
+
+  if (!task.action) {
+    throw new Error("action is required");
+  }
+
+  // Ensure action is an array
+  if (!Array.isArray(task.action)) {
+    console.warn(
+      `[${new Date().toISOString()}] task.action is not an array. It will be converted to an array.`
+    );
+    task.action = [task.action];
+  }
+
+  switch (task.taskType) {
+    case "one-time":
+    case "repetitive":
+      // Existing validation for 'one-time' and 'repetitive' tasks
+      break;
+    case "trigger-based":
+      if (!task.trigger) {
+        throw new Error("trigger is required for trigger-based tasks");
+      }
+      if (!task.trigger.topic || !task.trigger.value) {
+        throw new Error(
+          "trigger must include both topic and value for trigger-based tasks"
+        );
+      }
+      if (!task.condition) {
+        // Parse condition and value from trigger.value
+        const parsed = parseCondition(task.trigger.value);
+        task.condition = parsed.condition;
+        task.trigger.value = parsed.value;
+      }
+      if (!validConditions.includes(task.condition)) {
+        throw new Error(`Invalid condition: ${task.condition}`);
+      }
+      if (task.limit === undefined || task.limit === null) {
+        task.limit = UNLIMITED_LIMIT;
+      }
+      // Ensure limit is a positive number or UNLIMITED_LIMIT
+      if (
+        typeof task.limit !== "number" ||
+        (task.limit <= 0 && task.limit !== UNLIMITED_LIMIT)
+      ) {
+        throw new Error(
+          `limit must be a positive number or ${UNLIMITED_LIMIT} for unlimited executions`
+        );
+      }
+      break;
+    default:
+      throw new Error(`Invalid taskType: ${task.taskType}`);
+  }
+}
+
+/**
+ * Executes a task by performing its defined actions and logging the execution.
+ * @param {Object} task - The task object.
+ * @returns {Promise<boolean>} - Returns true if execution was successful, false otherwise.
+ */
+async function executeTask(task) {
+  try {
+    console.log(`[${new Date().toISOString()}] Executing task ID ${task.id}`);
+
+    // Validate that task.action is an array
+    if (!Array.isArray(task.action)) {
+      console.error(
+        `[${new Date().toISOString()}] task.action is not an array for task ID ${
+          task.id
+        }. Execution aborted.`
+      );
+      return false;
+    }
+
+    // Perform MQTT actions
+    for (const action of task.action) {
+      if (
+        !action.mqttTopic ||
+        action.value === undefined ||
+        action.value === null
+      ) {
+        console.warn(
+          `[${new Date().toISOString()}] Invalid action in task ID ${task.id}:`,
+          action
+        );
+        continue; // Skip invalid actions
+      }
+
+      console.log(
+        `[${new Date().toISOString()}] Publishing to topic "${
+          action.mqttTopic
+        }" with value "${action.value}"`
+      );
+      client.publish(action.mqttTopic, action.value.toString(), (err) => {
+        if (err) {
+          console.error(
+            `[${new Date().toISOString()}] Failed to publish to topic "${
+              action.mqttTopic
+            }":`,
+            err.message
+          );
+        } else {
+          console.log(
+            `[${new Date().toISOString()}] Successfully published to topic "${
+              action.mqttTopic
+            }"`
+          );
+        }
+      });
+    }
+
+    // Log execution in the database
+    await prisma.taskExecution.create({
+      data: {
+        taskId: task.id,
+        executedAt: new Date(), // Prisma handles date-time formatting
+      },
+    });
+
+    console.log(
+      `[${new Date().toISOString()}] Task ID ${task.id} executed successfully`
+    );
+
+    return true; // Indicate successful execution
+  } catch (error) {
+    console.error(
+      `[${new Date().toISOString()}] Failed to execute task ID ${task.id}:`,
+      error.message
+    );
+    return false; // Indicate failed execution
+  }
+}
+
+/**
+ * Deletes a task by its ID.
+ * @param {number} taskId - The ID of the task to delete.
+ */
+async function deleteTask(taskId) {
+  try {
+    // Fetch the task from the database
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+    });
+
+    if (!task) {
+      console.warn(
+        `[${new Date().toISOString()}] Task ID ${taskId} does not exist.`
+      );
+      return;
+    }
+
+    // Cancel scheduled timeouts or intervals based on task type
+    if (task.taskType === "one-time") {
+      const timeout = scheduledTimeouts.get(taskId);
+      if (timeout) {
+        clearTimeout(timeout);
+        scheduledTimeouts.delete(taskId);
+        console.log(
+          `[${new Date().toISOString()}] Cleared timeout for one-time task ID ${taskId}`
+        );
+      }
+    } else if (task.taskType === "repetitive") {
+      const interval = scheduledIntervals.get(taskId);
+      if (interval) {
+        clearInterval(interval);
+        scheduledIntervals.delete(taskId);
+        console.log(
+          `[${new Date().toISOString()}] Cleared interval for repetitive task ID ${taskId}`
+        );
+      }
+    } else if (task.taskType === "trigger-based") {
+      // Remove from triggersMap
+      delete triggersMap[taskId];
+      console.log(
+        `[${new Date().toISOString()}] Removed trigger-based task ID ${taskId} from triggersMap`
+      );
+
+      // Optionally unsubscribe from the MQTT topic if no other tasks are using it
+      const remainingTasks = await prisma.task.findMany({
+        where: {
+          triggerTopic: task.triggerTopic,
+        },
+      });
+
+      if (remainingTasks.length === 0) {
+        client.unsubscribe(task.triggerTopic, (err) => {
+          if (err) {
+            console.error(
+              `[${new Date().toISOString()}] Failed to unsubscribe from topic "${
+                task.triggerTopic
+              }":`,
+              err.message
+            );
+          } else {
+            console.log(
+              `[${new Date().toISOString()}] Unsubscribed from topic "${
+                task.triggerTopic
+              }"`
+            );
+          }
+        });
+      }
+    }
+
+    // Delete the task from the database
+    await prisma.task.delete({
+      where: { id: taskId },
+    });
+
+    console.log(
+      `[${new Date().toISOString()}] Task ID ${taskId} deleted successfully`
+    );
+  } catch (error) {
+    console.error(
+      `[${new Date().toISOString()}] Error deleting task ID ${taskId}:`,
+      error.message
+    );
+  }
+}
+
+/**
+ * Updates a task by its ID with new data.
+ * @param {number} taskId - The ID of the task to update.
+ * @param {Object} updatedData - An object containing the fields to update.
+ */
+async function updateTask(taskId, updatedData) {
+  try {
+    // Fetch the existing task
+    const existingTask = await prisma.task.findUnique({
+      where: { id: taskId },
+    });
+
+    if (!existingTask) {
+      console.warn(
+        `[${new Date().toISOString()}] Task ID ${taskId} does not exist.`
+      );
+      return;
+    }
+
+    // Delete the current scheduling
+    await deleteTask(taskId);
+
+    // Merge existing task data with updated data
+    const newTaskData = { ...existingTask, ...updatedData };
+
+    // Remove fields that shouldn't be manually set (like ID)
+    delete newTaskData.id;
+    delete newTaskData.executedCount;
+
+    // Validate the updated task
+    validateTask(newTaskData);
+
+    // Reschedule the task with updated data
+    await scheduleTask({ id: taskId, ...newTaskData });
+
+    console.log(
+      `[${new Date().toISOString()}] Task ID ${taskId} updated successfully`
+    );
+  } catch (error) {
+    console.error(
+      `[${new Date().toISOString()}] Error updating task ID ${taskId}:`,
+      error.message
+    );
+  }
+}
+
+// Export the scheduleTask, deleteTask, and updateTask functions for external use
 module.exports = {
   scheduleTask,
+  deleteTask,
+  updateTask,
+  getAllTasks,
+  getTaskById,
 };

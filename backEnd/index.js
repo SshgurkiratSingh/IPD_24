@@ -20,7 +20,7 @@ app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 app.use("/api/v1", require("./routes/llmChat"));
-
+app.use("/api/v2", require("./routes/automationPanel"));
 app.listen(port, "0.0.0.0", () => {
   console.log(`Server is online at port ${port}!`);
   console.log(`http://localhost:${port}`);
