@@ -10,7 +10,7 @@ generator client {
 
 datasource db {
   provider = "mongodb"
-  url      = env("DATABASE_URL")
+  url      = "mongodb+srv://gurkirat7092:fparkY14bM8iR0Vt@lgin.pbwzfo4.mongodb.net/homeGenerativeAI"
 }
 
 model Task {
