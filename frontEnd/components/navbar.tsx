@@ -8,23 +8,8 @@ import {
   NavbarMenuItem,
 } from "@nextui-org/navbar";
 import { Button } from "@nextui-org/button";
-import { Kbd } from "@nextui-org/kbd";
 import { Link } from "@nextui-org/link";
-import { Input } from "@nextui-org/input";
-import { link as linkStyles } from "@nextui-org/theme";
-import NextLink from "next/link";
 import clsx from "clsx";
-
-import { siteConfig } from "@/config/site";
-import { ThemeSwitch } from "@/components/theme-switch";
-import {
-  TwitterIcon,
-  GithubIcon,
-  DiscordIcon,
-  HeartFilledIcon,
-  SearchIcon,
-  Logo,
-} from "@/components/icons";
 
 export const Navbar = () => {
   const items = [
@@ -40,18 +25,25 @@ export const Navbar = () => {
 
   return (
     <NextUINavbar maxWidth="xl" position="sticky">
-      <NavbarBrand>
+      {/* Mobile Menu Toggle */}
+      <NavbarContent className="sm:hidden" justify="start">
+        <NavbarMenuToggle />
+      </NavbarContent>
+
+      {/* Brand Logo */}
+      <NavbarBrand className="flex">
         <h1 className="gradient-text2 text-2xl font-bold tracking-tight">
           GenAI Home Automation
         </h1>
       </NavbarBrand>
+
+      {/* Desktop Navigation Items */}
       <NavbarContent
         className="hidden sm:flex basis-1/5 sm:basis-full"
         justify="end"
       >
-        {" "}
         {items.map((item, index) => (
-          <NavbarItem key={`${item}-${index}`}>
+          <NavbarItem key={`${item.name}-${index}`}>
             <Link color="foreground" href={item.href}>
               <Button color="primary" variant="ghost">
                 {item.name}
@@ -60,7 +52,17 @@ export const Navbar = () => {
           </NavbarItem>
         ))}
       </NavbarContent>
-      <NavbarMenu></NavbarMenu>
+
+      {/* Mobile Navigation Menu */}
+      <NavbarMenu>
+        {items.map((item, index) => (
+          <NavbarMenuItem key={`${item.name}-${index}`}>
+            <Link className="w-full" href={item.href} size="lg">
+              {item.name}
+            </Link>
+          </NavbarMenuItem>
+        ))}
+      </NavbarMenu>
     </NextUINavbar>
   );
 };
