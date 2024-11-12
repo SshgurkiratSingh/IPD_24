@@ -4,13 +4,14 @@ import paho.mqtt.client as mqtt
 
 
 class MQTTClient:
-    def __init__(self, broker="localhost", port=1883):
+    def __init__(self, broker="ec2-3-86-53-202.compute-1.amazonaws.com", port=1883):
         """Initialize MQTT client"""
         self.client = mqtt.Client()
         self.broker = broker
         self.port = port
         self.current_player = None
         self.bus = dbus.SessionBus()
+        self.connected = False
 
         # Set up callbacks
         self.client.on_connect = self._on_connect
@@ -20,10 +21,12 @@ class MQTTClient:
         """Callback when client connects"""
         if rc == 0:
             print(f"Connected to MQTT broker at {self.broker}")
+            self.connected = True
             # Subscribe to topic after connection
             self.client.subscribe("c/playbackcontrol")
         else:
             print(f"Connection failed with code: {rc}")
+            self.connected = False
 
     def _on_message(self, client, userdata, msg):
         """Callback when message is received"""
@@ -83,10 +86,18 @@ class MQTTClient:
         try:
             self.client.connect(self.broker, self.port)
             self.client.loop_start()
-            return True
+            self.connected = True
         except Exception as e:
             print(f"Connection error: {e}")
-            return False
+            self.connected = False
+
+    def reconnect_periodically(self):
+        """Reconnect to MQTT broker every minute if not connected"""
+        while True:
+            if not self.connected:
+                print("Attempting to reconnect to MQTT broker...")
+                self.connect()
+            time.sleep(60)  # Wait for 1 minute before checking again
 
     def publish_data(self, data1: str, data2: str):
         """Publish data to two different topics"""
@@ -101,13 +112,19 @@ class MQTTClient:
         """Disconnect from MQTT broker"""
         self.client.loop_stop()
         self.client.disconnect()
+        self.connected = False
 
 
 def get_player_info():
     bus = dbus.SessionBus()
     last_title = None
-    mqtt_client = mqtt.Client()  # Initialize MQTT client correctly
-    mqtt_client.connect("localhost", 1883, 60)
+    mqtt_client = MQTTClient()
+    mqtt_client.connect()
+
+    # Start a separate thread for periodic reconnection
+    import threading
+    threading.Thread(target=mqtt_client.reconnect_periodically,
+                     daemon=True).start()
 
     while True:
         for service in bus.list_names():
@@ -137,9 +154,8 @@ def get_player_info():
                         print(f"Title: {title}")
                         print(f"Artist: {artists}")
 
-                        # Corrected publish method call
-                        mqtt_client.publish("c/Song", title)
-                        mqtt_client.publish("c/Artist", artist_string)
+                        mqtt_client.client.publish("c/Song", title)
+                        mqtt_client.client.publish("c/Artist", artist_string)
                         last_title = title
 
                     break
