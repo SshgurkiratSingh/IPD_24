@@ -21,6 +21,10 @@ export const Navbar = () => {
       name: "Control Panel",
       href: "/control",
     },
+    {
+      name: "Automation Panel",
+      href: "/automation",
+    },
   ];
 
   return (

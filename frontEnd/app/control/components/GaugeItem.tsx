@@ -13,7 +13,7 @@ interface GaugeItemProps {
 
 const GaugeItem: React.FC<GaugeItemProps> = ({ item }) => {
   const [value, setValue] = useState<number>(50); // Placeholder value
-
+  
   return (
     <div className="p-2 border rounded-lg">
       <label className="block mb-2 font-medium">{item.heading}</label>

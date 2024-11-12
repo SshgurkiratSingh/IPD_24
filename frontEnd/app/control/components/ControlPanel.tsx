@@ -7,6 +7,13 @@ import ToggleButton from "./ToggleItem";
 import RangeItem from "./RangeItem";
 import GaugeItem from "./GaugeItem";
 import useRoomData, { RoomData } from "../../hooks/useRoomData";
+import { 
+  MdMusicNote,
+  MdQueueMusic,
+  MdLightbulb,
+  MdDeleteOutline,
+  MdWaterDrop
+} from "react-icons/md";
 
 interface AreaConfig {
   type: string;
@@ -60,6 +67,53 @@ const ControlPanel: React.FC = () => {
 
     return (
       <div className="min-w-[90%]">
+        <Card className="mb-6 transition-all duration-300 hover:shadow-lg gradient-bg rounded-lg overflow-hidden">
+          <CardBody>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className="flex flex-col items-center justify-center">
+                <MdQueueMusic className="text-4xl text-primary mb-2" />
+                <p className="text-sm font-semibold">Artist</p>
+                <p className="text-lg">
+                  {getValueForTopic("c/Artist") || "N/A"}
+                </p>
+              </div>
+              <div className="flex flex-col items-center justify-center">
+                <MdMusicNote className="text-4xl text-primary mb-2" />
+                <p className="text-sm font-semibold">Song</p>
+                <p className="text-lg">{getValueForTopic("c/Song") || "N/A"}</p>
+              </div>
+              <div className="flex flex-col items-center justify-center">
+                <MdLightbulb
+                  className={`text-4xl mb-2 ${getValueForTopic("lawn/autonomousLighting") === "1" ? "text-yellow-400" : "text-gray-400"}`}
+                />
+                <p className="text-sm font-semibold">Auto Lighting</p>
+                <p className="text-lg">
+                  {getValueForTopic("lawn/autonomousLighting") === "1"
+                    ? "On"
+                    : "Off"}
+                </p>
+              </div>
+              <div className="flex flex-col items-center justify-center">
+                <MdDeleteOutline
+                  className={`text-4xl mb-2 ${getValueForTopic("dustbin/fullStatus") === "1" ? "text-red-500" : "text-green-500"}`}
+                />
+                <p className="text-sm font-semibold">Dustbin</p>
+                <p className="text-lg">
+                  {getValueForTopic("dustbin/fullStatus") === "1"
+                    ? "Full"
+                    : "Empty"}
+                </p>
+              </div>
+              <div className="flex flex-col items-center justify-center">
+                <MdWaterDrop className="text-4xl text-blue-500 mb-2" />
+                <p className="text-sm font-semibold">Water Level</p>
+                <p className="text-lg">
+                  {getValueForTopic("waterTank/waterLevel") || "N/A"}%
+                </p>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {mainPageConfig.map((area: AreaConfig) => (
             <Card
@@ -104,11 +158,13 @@ const ControlPanel: React.FC = () => {
                         {area.rangeChangeableTopic.map((item, index) => (
                           <RangeItem
                             key={index}
+                            customHeading={item.heading}
                             {...item}
                             value={
                               Number(getValueForTopic(item.topic)) ||
                               item.defaultValue
                             }
+                            type={item.type}
                           />
                         ))}
                       </div>
