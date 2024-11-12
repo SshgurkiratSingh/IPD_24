@@ -1,5 +1,4 @@
 "use client";
-import React, { useState } from "react";
 import {
   Table,
   TableHeader,
@@ -12,7 +11,7 @@ import { Card, CardHeader, CardBody, CardFooter } from "@nextui-org/card";
 import { Select, SelectSection, SelectItem } from "@nextui-org/select";
 import { Button } from "@nextui-org/button";
 import { Divider } from "@nextui-org/divider";
-
+import React, { useState, ChangeEvent } from "react";
 interface HistoryEntry {
   timestamp: string;
   value: string | number;
@@ -29,7 +28,7 @@ export default function App() {
   const topicOptions: string[] = [
     // Room Topics
     "room/temperature",
-    "room/humidity", 
+    "room/humidity",
     "room/light",
     "room/fan",
     "room/brightness",
@@ -88,7 +87,7 @@ export default function App() {
   const fetchData = async (): Promise<void> => {
     try {
       const params = new URLSearchParams({
-        topic
+        topic,
       });
 
       const response = await fetch(`/api/v3/history?${params.toString()}`);
@@ -123,9 +122,10 @@ export default function App() {
             label="Topic"
             placeholder="Select a topic"
             value={topic}
-            onValueChange={(selected: string) => setTopic(selected)}
+            onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+              setTopic(event.target.value as string)
+            }
             fullWidth
-            clearable
           >
             {Object.entries(groupedTopics).map(([group, topics]) => (
               <SelectSection key={group}>
