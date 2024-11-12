@@ -96,10 +96,10 @@ int currentValue[MAX_ITEMS] = {
     0,
     0,
 };
-const char topics[MAX_ITEMS][30] = {"hall/light", "hall/fan", "hall/switchboard", "hall/brightness", "hall/temperature", "hall/humidity"};
+const char topics[MAX_ITEMS][30] = {"hall/light1", "hall/fan", "hall/switchboard", "hall/brightness", "hall/temperature", "hall/humidity"};
 
 const bool isSensors[MAX_ITEMS] = {false, false, false, false, true, true};
-const bool isAlert[MAX_ITEMS] = {false, false, false, false, true, true};
+const bool isAlert[MAX_ITEMS] = {true, false, false, false, false, false};
 const uint8_t maxValues[MAX_ITEMS] = {1, 100, 1, 100};
 bool needUpdate = true;
 
@@ -110,7 +110,7 @@ const char mode2Topics[2][30] = {"c/Song", "c/Artist"};
 String mode2Strings[2] = {"SongName", "Artist"};
 #define CHANGE_MODE_BUTTON 23
 bool mode1 = true;
-#define BUZZER 14
+#define BUZZER 15
 String BottomText()
 {
     if (WiFi.status() != WL_CONNECTED)
@@ -125,6 +125,14 @@ String BottomText()
     {
         return "Connected";
     }
+} /**
+   * Function to make the buzzer beep.
+   */
+void beepBuzzer()
+{
+    digitalWrite(BUZZER, HIGH); // Turn on the buzzer
+    delay(500);                 // Beep for 500 milliseconds
+    digitalWrite(BUZZER, LOW);  // Turn off the buzzer
 }
 /**
  * Callback function that handles incoming messages.
@@ -172,6 +180,12 @@ void callback(char *topic, byte *payload, unsigned int length)
                 // For items that can have other numeric values
                 currentValue[i] = message.toInt();
                 needUpdate = true;
+            }
+
+            // Check if the item is an alert and trigger the buzzer
+            if (isAlert[i])
+            {
+                beepBuzzer();
             }
             break;
         }
@@ -241,6 +255,7 @@ void setup()
 
 #if DEBUG_MODE
         Serial.println("connected");
+        beepBuzzer();
 #endif
         for (int i = 0; i < MAX_ITEMS; i++)
         {
