@@ -2,7 +2,8 @@
 import { Button } from "@nextui-org/button";
 import { Card, CardBody, CardFooter, CardHeader } from "@nextui-org/card";
 import { Divider } from "@nextui-org/divider";
-import React, { useEffect, useState, ChangeEvent, FormEvent } from "react";
+import React, { useState, ChangeEvent, FormEvent, useRef, useCallback, lazy, Suspense } from "react";
+import { useTasksData } from "../hooks/useTasksData";
 import {
   Modal,
   ModalContent,
@@ -18,17 +19,18 @@ import {
   TableRow,
   TableCell,
 } from "@nextui-org/table";
-import {
-  FaTrashAlt,
-  FaPlus,
-  FaClock,
-  FaBolt,
-  FaInfoCircle,
-} from "react-icons/fa";
+import { FaTrashAlt, FaPlus, FaExclamationTriangle } from "react-icons/fa";
 import { CiRepeat } from "react-icons/ci";
 
 import { Select, SelectSection, SelectItem } from "@nextui-org/select";
 import { Input } from "@nextui-org/input";
+import { Skeleton } from "@nextui-org/skeleton";
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { Spinner } from "@nextui-org/spinner";
+
+const FaClock = lazy(() => import('react-icons/fa').then(module => ({ default: module.FaClock })));
+const FaBolt = lazy(() => import('react-icons/fa').then(module => ({ default: module.FaBolt })));
+const FaInfoCircle = lazy(() => import('react-icons/fa').then(module => ({ default: module.FaInfoCircle })));
 
 interface Action {
   mqttTopic: string;
@@ -53,8 +55,8 @@ interface Task {
 }
 
 export default function ControlPanel() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const { tasks, isLoading, error, mutate } = useTasksData();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // State for modal visibility
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -66,6 +68,22 @@ export default function ControlPanel() {
     action: [{ mqttTopic: "", value: "" }],
     trigger: { topic: "", value: "" },
   });
+
+  // Add a callback for SWR to track background refreshes
+  const onSuccess = useCallback(() => {
+    setIsRefreshing(false);
+  }, []);
+
+  const refreshData = useCallback(() => {
+    setIsRefreshing(true);
+    mutate().then(onSuccess);
+  }, [mutate, onSuccess]);
+
+  // Refresh data every 30 seconds
+  React.useEffect(() => {
+    const interval = setInterval(refreshData, 30000);
+    return () => clearInterval(interval);
+  }, [refreshData]);
 
   // Helper function to convert Unix timestamp to datetime-local string
   const unixToDateTimeLocal = (unix: number | undefined): string => {
@@ -82,33 +100,28 @@ export default function ControlPanel() {
     return Math.floor(date.getTime() / 1000);
   };
 
-  // Fetch tasks from the backend API
-  useEffect(() => {
-    fetch("/api/v2")
-      .then((res) => res.json())
-      .then((data) => {
-        setTasks(data);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error fetching tasks:", error);
-        setLoading(false);
-      });
-  }, []);
+  if (error) {
+    console.error("Error fetching tasks:", error);
+  }
 
   // Handler for deleting a task
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const handleDelete = (id: number) => {
+    setDeleteError(null);
     fetch(`/api/v2/${id}`, {
       method: "DELETE",
     })
       .then((res) => {
         if (res.ok) {
-          setTasks(tasks.filter((task) => task.id !== id));
+          mutate(); // Trigger a re-fetch of the tasks
         } else {
-          console.error("Failed to delete task");
+          throw new Error("Failed to delete task");
         }
       })
-      .catch((error) => console.error("Error deleting task:", error));
+      .catch((error) => {
+        console.error("Error deleting task:", error);
+        setDeleteError("Failed to delete task. Please try again.");
+      });
   };
 
   // Handler for opening the modal to create a new task
@@ -129,8 +142,10 @@ export default function ControlPanel() {
   };
 
   // Handler for form submission
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    setSubmitError(null);
 
     // Prepare data to send to the backend
     const data = { ...formData };
@@ -154,11 +169,12 @@ export default function ControlPanel() {
       .then(() => {
         // Close the modal and refresh the task list
         handleCloseModal();
-        return fetch("/api/v2")
-          .then((res) => res.json())
-          .then((data) => setTasks(data));
+        mutate(); // Trigger a re-fetch of the tasks
       })
-      .catch((error) => console.error("Error creating task:", error));
+      .catch((error) => {
+        console.error("Error creating task:", error);
+        setSubmitError("Failed to create task. Please try again.");
+      });
   };
 
   // Handler for form input changes
@@ -203,21 +219,33 @@ export default function ControlPanel() {
   };
 
   return (
-    <Card>
+    <Card className="w-full max-w-4xl mx-auto">
       <CardHeader className="flex justify-between items-center">
         <h2 className="text-xl font-bold">Control Panel</h2>
-        <Button
-          color="primary"
-          onClick={handleOpenModal}
-          startContent={<FaPlus />}
-        >
-          Add Task
-        </Button>
+        <div className="flex items-center">
+          {isRefreshing && <Spinner size="sm" color="primary" className="mr-2" />}
+          <Button
+            color="primary"
+            onClick={handleOpenModal}
+            startContent={<FaPlus />}
+          >
+            Add Task
+          </Button>
+        </div>
       </CardHeader>
       <Divider />
-      <CardBody>
-        {loading ? (
-          <p>Loading tasks...</p>
+      <CardBody className="overflow-hidden">
+        {isLoading ? (
+          <div>
+            {[...Array(5)].map((_, index) => (
+              <Skeleton key={index} className="h-12 w-full mb-2" />
+            ))}
+          </div>
+        ) : error ? (
+          <div className="text-danger flex items-center">
+            <FaExclamationTriangle className="mr-2" />
+            <span>Error loading tasks. Please try again later.</span>
+          </div>
         ) : tasks.length === 0 ? (
           <p>No tasks available.</p>
         ) : (
@@ -230,59 +258,76 @@ export default function ControlPanel() {
               <TableColumn>Options</TableColumn>
             </TableHeader>
             <TableBody>
-              {tasks.map((task) => (
-                <TableRow key={task.id}>
-                  <TableCell>{task.id}</TableCell>
-                  <TableCell>
-                    {task.taskType === "one-time" && (
-                      <FaClock className="inline mr-2" />
-                    )}
-                    {task.taskType === "repetitive" && (
-                      <CiRepeat className="inline mr-2" />
-                    )}
-                    {task.taskType === "trigger-based" && (
-                      <FaBolt className="inline mr-2" />
-                    )}
-                    {task.taskType}
-                  </TableCell>
-                  <TableCell>
-                    {task.taskType === "trigger-based" ? (
-                      <span>
-                        Topic: {task.trigger?.topic}, Value:{" "}
-                        {task.trigger?.value}
-                      </span>
-                    ) : task.time ? (
-                      <span>{new Date(task.time * 1000).toLocaleString()}</span>
-                    ) : (
-                      <span>N/A</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {task.action.map((action, index) => (
-                      <div key={index}>
-                        Topic: {action.mqttTopic}, Value: {action.value}
-                      </div>
-                    ))}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      color="danger"
-                      variant="light"
-                      onClick={() => handleDelete(task.id)}
-                      startContent={<FaTrashAlt />}
-                    >
-                      Delete
-                    </Button>
-                    {/* Add Edit Button if needed */}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {useVirtualizer({
+                count: tasks.length,
+                getScrollElement: () => document.querySelector('.nextui-table-body'),
+                estimateSize: useCallback(() => 50, []),
+                overscan: 5,
+              }).getVirtualItems().map((virtualRow) => {
+                const task = tasks[virtualRow.index];
+                return (
+                  <TableRow key={task.id}>
+                    <TableCell>{task.id}</TableCell>
+                    <TableCell>
+                      <Suspense fallback={<Spinner size="sm" />}>
+                        {task.taskType === "one-time" && (
+                          <FaClock className="inline mr-2" />
+                        )}
+                        {task.taskType === "repetitive" && (
+                          <CiRepeat className="inline mr-2" />
+                        )}
+                        {task.taskType === "trigger-based" && (
+                          <FaBolt className="inline mr-2" />
+                        )}
+                      </Suspense>
+                      {task.taskType}
+                    </TableCell>
+                    <TableCell>
+                      {task.taskType === "trigger-based" ? (
+                        <span>
+                          Topic: {task.trigger?.topic}, Value:{" "}
+                          {task.trigger?.value}
+                        </span>
+                      ) : task.time ? (
+                        <span>{new Date(task.time * 1000).toLocaleString()}</span>
+                      ) : (
+                        <span>N/A</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {task.action.map((action, index) => (
+                        <div key={index}>
+                          Topic: {action.mqttTopic}, Value: {action.value}
+                        </div>
+                      ))}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        color="danger"
+                        variant="light"
+                        onClick={() => handleDelete(task.id)}
+                        startContent={<FaTrashAlt />}
+                      >
+                        Delete
+                      </Button>
+                      {/* Add Edit Button if needed */}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         )}
       </CardBody>
       <Divider />
-      <CardFooter>{/* You can add footer content here */}</CardFooter>
+      <CardFooter>
+        {deleteError && (
+          <div className="text-danger flex items-center">
+            <FaExclamationTriangle className="mr-2" />
+            <span>{deleteError}</span>
+          </div>
+        )}
+      </CardFooter>
 
       {/* Modal for creating a new task */}
       <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
@@ -351,7 +396,9 @@ export default function ControlPanel() {
                         onChange={handleInputChange}
                         required
                         startContent={
-                          <FaBolt className="text-default-400 pointer-events-none flex-shrink-0" />
+                          <Suspense fallback={<Spinner size="sm" />}>
+                            <FaBolt className="text-default-400 pointer-events-none flex-shrink-0" />
+                          </Suspense>
                         }
                       />
                       <Input
@@ -361,7 +408,9 @@ export default function ControlPanel() {
                         onChange={handleInputChange}
                         required
                         startContent={
-                          <FaInfoCircle className="text-default-400 pointer-events-none flex-shrink-0" />
+                          <Suspense fallback={<Spinner size="sm" />}>
+                            <FaInfoCircle className="text-default-400 pointer-events-none flex-shrink-0" />
+                          </Suspense>
                         }
                       />
                       <Input
@@ -425,6 +474,12 @@ export default function ControlPanel() {
                   </div>
                 </ModalBody>
                 <ModalFooter>
+                  {submitError && (
+                    <div className="text-danger flex items-center mb-2">
+                      <FaExclamationTriangle className="mr-2" />
+                      <span>{submitError}</span>
+                    </div>
+                  )}
                   <Button
                     variant="light"
                     onClick={handleCloseModal}
