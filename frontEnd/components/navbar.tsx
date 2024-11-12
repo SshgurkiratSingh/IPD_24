@@ -42,7 +42,7 @@ export const Navbar = () => {
     <NextUINavbar maxWidth="xl" position="sticky">
       <NavbarBrand>
         <h1 className="gradient-text2 text-2xl font-bold tracking-tight">
-          IPD24
+          GenAI Home Automation
         </h1>
       </NavbarBrand>
       <NavbarContent
