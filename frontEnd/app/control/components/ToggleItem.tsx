@@ -3,7 +3,14 @@ import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { debounce } from "lodash";
 import { IconType } from "react-icons";
-import { FaLightbulb, FaPlug, FaTv, FaDesktop, FaLightbulb as FaAmbientLight, FaPumpSoap } from "react-icons/fa";
+import {
+  FaLightbulb,
+  FaPlug,
+  FaTv,
+  FaDesktop,
+  FaLightbulb as FaAmbientLight,
+  FaPumpSoap,
+} from "react-icons/fa";
 interface ToggleButtonProps {
   topic: string;
   value: boolean;

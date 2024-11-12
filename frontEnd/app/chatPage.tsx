@@ -124,7 +124,7 @@ const ChatPage: React.FC = () => {
           msg.type === "user" ? msg.text : msg.data ? msg.data.reply : msg.text,
       }));
 
-      const response = await fetch("http://192.168.1.100:2500/api/v1/chat", {
+      const response = await fetch("/api/v1/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
