@@ -3,16 +3,17 @@ import React, { useCallback, useMemo } from "react";
 import { Card, CardHeader, CardBody, CardFooter } from "@nextui-org/card";
 import { Divider } from "@nextui-org/divider";
 import mainPageConfig from "@/MainPageConfigModular";
+import { IconType } from "react-icons";
 import ToggleButton from "./ToggleItem";
 import RangeItem from "./RangeItem";
 import GaugeItem from "./GaugeItem";
 import useRoomData, { RoomData } from "../../hooks/useRoomData";
-import { 
+import {
   MdMusicNote,
   MdQueueMusic,
   MdLightbulb,
   MdDeleteOutline,
-  MdWaterDrop
+  MdWaterDrop,
 } from "react-icons/md";
 
 interface AreaConfig {
@@ -185,6 +186,9 @@ const ControlPanel: React.FC = () => {
                             item={{
                               ...item,
                               value: Number(getValueForTopic(item.topic)) || 0,
+                              min: item.min || 0,
+                              max: item.max || 100,
+                              icon: item.icon as IconType,
                             }}
                           />
                         ))}
@@ -194,9 +198,11 @@ const ControlPanel: React.FC = () => {
               </CardBody>
               <Divider />
               <CardFooter>
-                <span className="text-sm">
-                  Background Image: {area.backImg}
-                </span>
+                {getValueForTopic(`${area.roomTag}/alert`) && (
+                  <span className="text-sm">
+                    {getValueForTopic(`${area.roomTag}/alert`)}
+                  </span>
+                )}{" "}
               </CardFooter>
             </Card>
           ))}

@@ -1,15 +1,18 @@
+import { MdLightbulb, MdTv, MdWbSunny, MdWaterDrop, MdThermostat, MdOpacity, MdLocalGasStation, MdSensors, MdWaves } from "react-icons/md";
+
 const mainPageConfig = [
     {
       type: "area",
       roomName: "Room",
       roomId: 1,
-      roomTag: "room1",
+      roomTag: "room",
       toggleItems: [
         {
           heading: "Lights",
           topic: "room/light",
           type: "light",
           defaultState: false,
+          icon: MdLightbulb,
         },
         {
           heading: "Switchboard",
@@ -45,16 +48,22 @@ const mainPageConfig = [
         {
           topic: "room/temperature",
           heading: "Temperature",
-          longHeading: "Room 1 Temperature", // Changed from LongHeading to longHeading
+          longHeading: "Room 1 Temperature",
           endMark: "°C",
           type: "temperature",
+          icon: MdThermostat,
+          min: 0,
+          max: 50,
         },
         {
           topic: "room/humidity",
           heading: "Humidity",
-          longHeading: "Room 1 Humidity", // Changed from LongHeading to longHeading
+          longHeading: "Room 1 Humidity",
           endMark: "%",
           type: "humidity",
+          icon: MdOpacity,
+          min: 0,
+          max: 100,
         },
       ],
       backImg: "/back2.webp",
@@ -82,6 +91,7 @@ const mainPageConfig = [
           topic: "hall/tv",
           type: "tv",
           defaultState: false,
+          icon: MdTv,
         },
         {
           heading: "OLED",
@@ -94,6 +104,7 @@ const mainPageConfig = [
           topic: "hall/ambientLight",
           type: "ambientLight",
           defaultState: false,
+          icon: MdWbSunny,
         },
       ],
       alertTopic: "hall/alert",
@@ -123,23 +134,26 @@ const mainPageConfig = [
         {
           topic: "hall/temperature",
           heading: "Temperature",
-          longHeading: "Hall Temperature", // Changed from LongHeading to longHeading
+          longHeading: "Hall Temperature",
           endMark: "°C",
           type: "temperature",
+          icon: MdThermostat,
         },
         {
           topic: "hall/humidity",
           heading: "Humidity",
-          longHeading: "Hall Humidity", // Changed from LongHeading to longHeading
+          longHeading: "Hall Humidity",
           endMark: "%",
           type: "humidity",
+          icon: MdOpacity,
         },
         {
           topic: "hall/gas",
           heading: "Gas Level",
-          longHeading: "Hall Gas Level", // Changed from LongHeading to longHeading
+          longHeading: "Hall Gas Level",
           endMark: "ppm",
           type: "gas",
+          icon: MdLocalGasStation,
         },
       ],
       backImg: "/hallBack.webp",
@@ -179,16 +193,18 @@ const mainPageConfig = [
         {
           topic: "lawn/ultrasonic1",
           heading: "Ultrasonic Sensor 1",
-          longHeading: "Lawn Ultrasonic Sensor 1", // Changed from LongHeading to longHeading
+          longHeading: "Lawn Ultrasonic Sensor 1",
           endMark: "cm",
           type: "ultrasonic",
+          icon: MdSensors,
         },
         {
           topic: "lawn/ultrasonic2",
           heading: "Ultrasonic Sensor 2",
-          longHeading: "Lawn Ultrasonic Sensor 2", // Changed from LongHeading to longHeading
+          longHeading: "Lawn Ultrasonic Sensor 2",
           endMark: "cm",
           type: "ultrasonic",
+          icon: MdSensors,
         },
       ],
       additionalTopics: ["lawn/autonomousLighting"],
@@ -203,16 +219,18 @@ const mainPageConfig = [
         {
           topic: "homeGarden/rainSensor",
           heading: "Rain Sensor",
-          longHeading: "Home Garden Rain Sensor", // Changed from LongHeading to longHeading
+          longHeading: "Home Garden Rain Sensor",
           endMark: "",
           type: "rain",
+          icon: MdWaves,
         },
         {
           topic: "homeGarden/soilMoisture",
           heading: "Soil Moisture",
-          longHeading: "Home Garden Soil Moisture", // Changed from LongHeading to longHeading
+          longHeading: "Home Garden Soil Moisture",
           endMark: "%",
           type: "soilMoisture",
+          icon: MdOpacity,
         },
       ],
       toggleItems: [
@@ -221,6 +239,7 @@ const mainPageConfig = [
           topic: "homeGarden/pumpStatus",
           type: "pump",
           defaultState: false,
+          icon: MdWaterDrop,
         },
       ],
       backImg: "/homeGardenBack.webp",
