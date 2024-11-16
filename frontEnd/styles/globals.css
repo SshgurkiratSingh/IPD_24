@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-
 @keyframes rot55 {
   to {
     transform: rotate(360deg);
@@ -11,7 +10,13 @@
 
 /* Updated gradient text with modern colors and smoother animation */
 .gradient-text {
-  background: -webkit-linear-gradient(45deg, #FF6B6B, #ffee04, #45B7D1, #0da721);
+  background: -webkit-linear-gradient(
+    45deg,
+    #ff6b6b,
+    #ffee04,
+    #45b7d1,
+    #0da721
+  );
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -33,7 +38,13 @@
 
 /* Modern neon gradient */
 .gradient-text2 {
-  background: -webkit-linear-gradient(45deg, #00F5A0, #00D9F5, #d7e608, #A200FF);
+  background: -webkit-linear-gradient(
+    45deg,
+    #00f5a0,
+    #00d9f5,
+    #d7e608,
+    #a200ff
+  );
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -43,7 +54,13 @@
 
 /* Warm sunset gradient */
 .gradient-text3 {
-  background: -webkit-linear-gradient(45deg, #FF8C00, #FF5F6D, #FFC371, #FF3F8B);
+  background: -webkit-linear-gradient(
+    45deg,
+    #ff8c00,
+    #ff5f6d,
+    #ffc371,
+    #ff3f8b
+  );
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -51,6 +68,20 @@
   animation: gradientAnimation 6s ease infinite;
 }
 
+.gradient-text4 {
+  background: -webkit-linear-gradient(
+    125deg,
+    #01e1ff,
+    #e205ff,
+    #ffc371,
+    #0fff1b
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 300% 300%;
+  animation: gradientAnimation 6s ease infinite;
+}
 @keyframes gradient-flow {
   0% {
     background-position: 0% 50%;
@@ -65,7 +96,14 @@
 
 /* Modern deep ocean gradient */
 .animate-gradient-flow {
-  background: linear-gradient(90deg, #0269df, #f70592, #34e008, #a4f70b, #1593bd);
+  background: linear-gradient(
+    90deg,
+    #0269df,
+    #f70592,
+    #34e008,
+    #a4f70b,
+    #1593bd
+  );
   background-size: 300% 300%;
   animation: gradient-flow 8s ease-in-out infinite;
   background-clip: text;
@@ -105,8 +143,12 @@
   background: #252532;
   width: 115px;
   border-radius: 165px;
-  -webkit-box-shadow: inset 0px 5px 10px 0px #16151c, 0px 3px 6px -2px #403f4e;
-  box-shadow: inset 0px 5px 10px 0px #16151c, 0px 3px 6px -2px #403f4e;
+  -webkit-box-shadow:
+    inset 0px 5px 10px 0px #16151c,
+    0px 3px 6px -2px #403f4e;
+  box-shadow:
+    inset 0px 5px 10px 0px #16151c,
+    0px 3px 6px -2px #403f4e;
   border: 1px solid #32303e;
   padding: 6px;
   -webkit-box-sizing: border-box;
@@ -136,8 +178,12 @@
   background: -o-linear-gradient(#3b3a4e, #272733);
   background: linear-gradient(#3b3a4e, #272733);
   border-radius: 100%;
-  -webkit-box-shadow: inset 0px 5px 4px 0px #424151, 0px 4px 15px 0px #0f0e17;
-  box-shadow: inset 0px 5px 4px 0px #424151, 0px 4px 15px 0px #0f0e17;
+  -webkit-box-shadow:
+    inset 0px 5px 4px 0px #424151,
+    0px 4px 15px 0px #0f0e17;
+  box-shadow:
+    inset 0px 5px 4px 0px #424151,
+    0px 4px 15px 0px #0f0e17;
   position: relative;
   z-index: 2;
   -webkit-transition: left 0.3s ease-in;
@@ -226,12 +272,18 @@
   width: 130px;
   height: 75px;
   border-radius: 50px;
-  box-shadow: 0 -1px 1px 0 rgba(0, 0, 0, .5), 0px 1px 1px 0 rgba(255, 255, 255, 1);
+  box-shadow:
+    0 -1px 1px 0 rgba(0, 0, 0, 0.5),
+    0px 1px 1px 0 rgba(255, 255, 255, 1);
   background: rgb(189, 191, 193);
-  background: linear-gradient(to bottom, rgba(189, 191, 193, 1) 0%, rgba(249, 251, 254, 1) 100%);
+  background: linear-gradient(
+    to bottom,
+    rgba(189, 191, 193, 1) 0%,
+    rgba(249, 251, 254, 1) 100%
+  );
 }
 
-.toggle > div > input[type=checkbox] {
+.toggle > div > input[type="checkbox"] {
   position: absolute;
   opacity: 0;
   top: -3px;
@@ -241,23 +293,43 @@
   z-index: 5;
 }
 
-.toggle > div > input[type=checkbox] ~ div {
+.toggle > div > input[type="checkbox"] ~ div {
   width: 110px;
   height: 55px;
   border-radius: 50px;
   border: 1px solid #979797;
-  box-shadow: inset 5px 0 0 0 rgba(0, 0, 0, .1), inset -5px 0 0 0 rgba(0, 0, 0, .1), inset -6px 0 0 0 rgba(255, 255, 255, .5), inset -4px 6px 11px -5px rgba(0, 0, 0, .2), inset 1px 1px 0 0 rgba(255, 255, 255, 1), -6px 4px 11px -7px rgba(0, 0, 0, .5);
+  box-shadow:
+    inset 5px 0 0 0 rgba(0, 0, 0, 0.1),
+    inset -5px 0 0 0 rgba(0, 0, 0, 0.1),
+    inset -6px 0 0 0 rgba(255, 255, 255, 0.5),
+    inset -4px 6px 11px -5px rgba(0, 0, 0, 0.2),
+    inset 1px 1px 0 0 rgba(255, 255, 255, 1),
+    -6px 4px 11px -7px rgba(0, 0, 0, 0.5);
   background: rgb(253, 252, 251);
-  background: linear-gradient(to right, rgba(253, 252, 251, 1) 37%, rgba(229, 229, 229, 1) 61%);
+  background: linear-gradient(
+    to right,
+    rgba(253, 252, 251, 1) 37%,
+    rgba(229, 229, 229, 1) 61%
+  );
 }
 
-.toggle > div > input[type=checkbox]:checked ~ div {
-  box-shadow: inset -5px 0 0 0 rgba(0, 0, 0, .1), inset 5px 0 0 0 rgba(0, 0, 0, .1), inset 6px 0 0 0 rgba(255, 255, 255, .5), inset -4px 6px 11px -5px rgba(0, 0, 0, .2), inset 1px 1px 0 0 rgba(255, 255, 255, 1), -6px 4px 11px -7px rgba(0, 0, 0, .5);
+.toggle > div > input[type="checkbox"]:checked ~ div {
+  box-shadow:
+    inset -5px 0 0 0 rgba(0, 0, 0, 0.1),
+    inset 5px 0 0 0 rgba(0, 0, 0, 0.1),
+    inset 6px 0 0 0 rgba(255, 255, 255, 0.5),
+    inset -4px 6px 11px -5px rgba(0, 0, 0, 0.2),
+    inset 1px 1px 0 0 rgba(255, 255, 255, 1),
+    -6px 4px 11px -7px rgba(0, 0, 0, 0.5);
   background: rgb(229, 229, 229);
-  background: linear-gradient(to right, rgba(229, 229, 229, 1) 39%, rgba(253, 252, 251, 1) 63%);
+  background: linear-gradient(
+    to right,
+    rgba(229, 229, 229, 1) 39%,
+    rgba(253, 252, 251, 1) 63%
+  );
 }
 
-.toggle > div > input[type=checkbox] ~ div:before {
+.toggle > div > input[type="checkbox"] ~ div:before {
   content: attr(data-unchecked);
   display: block;
   position: absolute;
@@ -266,10 +338,12 @@
   left: 30px;
 }
 
-.toggle > div > input[type=checkbox] ~ div:after {
+.toggle > div > input[type="checkbox"] ~ div:after {
   content: attr(data-checked);
   color: #df0000;
-  text-shadow: 0 1px 0 #fff, 0px 0 7px #df0000;
+  text-shadow:
+    0 1px 0 #fff,
+    0px 0 7px #df0000;
   filter: dropshadow(color=#df0000, offx=0, offy=0);
   display: block;
   position: absolute;
@@ -278,13 +352,15 @@
   left: 80px;
 }
 
-.toggle > div > input[type=checkbox]:checked ~ div:before {
+.toggle > div > input[type="checkbox"]:checked ~ div:before {
   color: #119400;
-  text-shadow: 0 1px 0 #fff, 0px 0 7px #007a08;
+  text-shadow:
+    0 1px 0 #fff,
+    0px 0 7px #007a08;
   filter: dropshadow(color=#007a08, offx=0, offy=0);
 }
 
-.toggle > div > input[type=checkbox]:checked ~ div:after {
+.toggle > div > input[type="checkbox"]:checked ~ div:after {
   color: #000;
   text-shadow: none;
   filter: dropshadow(none);
@@ -295,20 +371,22 @@
   background: #e3edf7;
   padding: 1.4em;
   border-radius: 10px;
-  box-shadow: 6px 6px 10px -1px rgba(0,0,0,0.15),
-	      -6px -6px 10px -1px rgba(255,255,255,0.7);
-  border: 1px solid rgba(0,0,0,0);
+  box-shadow:
+    6px 6px 10px -1px rgba(0, 0, 0, 0.15),
+    -6px -6px 10px -1px rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0);
   cursor: pointer;
   transition: transform 0.5s;
 }
 
 .btn:hover {
-  box-shadow: inset 4px 4px 6px -1px rgba(0,0,0,0.2),
-	      inset -4px -4px 6px -1px rgba(255,255,255,0.7),
-	      -0.5px -0.5px 0px rgba(255,255,255,1),
-	      0.5px 0.5px 0px rgba(0,0,0,0.15),
-	      0px 12px 10px -10px rgba(0,0,0,0.05);
-  border: 1px solid rgba(0,0,0,0.1);
+  box-shadow:
+    inset 4px 4px 6px -1px rgba(0, 0, 0, 0.2),
+    inset -4px -4px 6px -1px rgba(255, 255, 255, 0.7),
+    -0.5px -0.5px 0px rgba(255, 255, 255, 1),
+    0.5px 0.5px 0px rgba(0, 0, 0, 0.15),
+    0px 12px 10px -10px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   transform: translateY(0.5em);
 }
 
@@ -321,10 +399,9 @@
   fill: #333333;
 }
 
-
 .titBlock {
   position: relative;
-font-weight: bolder;
+  font-weight: bolder;
 
   text-transform: uppercase;
   font-size: 1.3em;
@@ -342,7 +419,7 @@ font-weight: bolder;
   0% {
     background-position: -250%;
   }
-  50%{
+  50% {
     background-position: 370%;
   }
   75% {
@@ -360,12 +437,3 @@ font-weight: bolder;
   transition: all 0.2s ease;
   will-change: transform;
 }
-
-
-
-
-
-
-
-
-
