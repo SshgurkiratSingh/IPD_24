@@ -8,7 +8,15 @@ import { Select, SelectItem } from "@nextui-org/select";
 import { Textarea } from "@nextui-org/input";
 import { Button } from "@nextui-org/button";
 import { Card, CardBody, CardHeader } from "@nextui-org/card";
-import { FaRegFolder, FaRegFolderOpen } from "react-icons/fa";
+import {
+  FaRegFolder,
+  FaRegFolderOpen,
+  FaPaperPlane,
+  FaImage,
+  FaQuestion,
+  FaRobot,
+  FaUser,
+} from "react-icons/fa";
 
 export interface ObjectIdentification {
   type: string; // Type of object (e.g., person, vehicle, animal)
@@ -201,6 +209,7 @@ export default function VideoFeed(): JSX.Element {
         <div>
           <Select
             label="Select Image"
+            startContent={<FaImage className="text-default-400" />}
             placeholder="Choose an image"
             selectedKeys={new Set([selectedImage])}
             onSelectionChange={(keys) =>
@@ -238,20 +247,24 @@ export default function VideoFeed(): JSX.Element {
             isLoading={loading}
             disabled={loading}
             className="mt-2 md:mt-0 md:ml-4 self-end"
+            endContent={<FaPaperPlane className="h-4 w-4" />}
           >
             Send
           </Button>
         </div>
         {/* Chat History */}
         <div className="flex-grow overflow-y-auto mb-4">
-          <h3 className="text-2xl font-semibold mb-4">Chat History</h3>
+          <h3 className="text-2xl font-semibold mb-4 gradient-text3">
+            Chat History
+          </h3>
           <div className="space-y-4">
             {chatHistory.map((entry, index) => (
               <div key={index}>
                 {entry.role === "user" ? (
                   <Card className="">
                     <CardBody>
-                      <h1 className="text-primary font-medium">
+                      <h1 className="text-primary font-medium flex items-center gap-2">
+                        <FaUser className="h-4 w-4" />
                         {typeof entry.content === "string" ? (
                           <p>{entry.content}</p>
                         ) : (
@@ -263,7 +276,8 @@ export default function VideoFeed(): JSX.Element {
                 ) : (
                   <Card className="">
                     <CardBody>
-                      <h1 className="text-success font-semibold">
+                      <h1 className="text-success font-semibold flex items-center gap-2">
+                        <FaRobot className="h-4 w-4" />
                         <strong>Assistant:</strong>
                       </h1>
                       {typeof entry.content === "string" ? (

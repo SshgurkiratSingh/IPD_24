@@ -2,6 +2,7 @@
 import React, { useState, ChangeEvent, useRef, useEffect } from "react";
 import { CiUser } from "react-icons/ci";
 import { AiOutlineRobot } from "react-icons/ai";
+import { FaMicrophone, FaMicrophoneSlash } from "react-icons/fa"; // Import microphone icons
 
 import { Card, CardHeader, CardBody, CardFooter } from "@nextui-org/card";
 import { motion } from "framer-motion";
@@ -23,7 +24,10 @@ import ChatHeader from "@/components/ChatHeader";
 import ChatMessage from "@/components/ChatMessage";
 import SuggestedQuestions from "@/components/SuggestedQuestions";
 
-// Initialize SpeechRecognition (Assuming it's used elsewhere)
+// Define SpeechRecognition type for TypeScript
+const SpeechRecognition =
+  typeof window !== "undefined" &&
+  (window.SpeechRecognition || (window as any).webkitSpeechRecognition);
 
 interface ChatMessage {
   type: "user" | "assistant";
@@ -46,7 +50,7 @@ interface Action {
 
 const suggestedQuestions = [
   "Turn on the light in room",
-  "notify me about temperature and humidity in room",
+  "Notify me about temperature and humidity in room",
   "Tell me about temperature and humidity in room",
   "When PIR gets activated in room, turn on the lights",
   "What can you do",
@@ -54,17 +58,16 @@ const suggestedQuestions = [
   "Schedule turning on lawn light everyday at 7pm",
   "Which song is playing",
   "Change the song",
-  "alert when pir get 1",
+  "Alert when PIR gets 1",
   "Turn off hall TV after 5 minutes",
   "Turn off music after half an hour",
   "What's the current temperature in the living room?",
   "Set bedroom lights to 50% brightness",
   "Open the garage door",
-  "turn on room switchboard",
-  "Turn on fan for 2 hours in hall",
+  "Turn on room switchboard",
   "Is everything off in room?",
   "Turn off all lights in home except lawn",
-  "start playing song",
+  "Start playing song",
 ];
 
 const getRandomQuestions = (questions: string[]) => {
@@ -76,9 +79,10 @@ const ChatPage: React.FC = () => {
   const [userInput, setUserInput] = useState<string>("");
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  // Removed unused isListening state
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [randomQuestions, setRandomQuestions] = useState<string[]>([]); // New state for random questions
+  const [randomQuestions, setRandomQuestions] = useState<string[]>([]);
+  const [isListening, setIsListening] = useState<boolean>(false); // New state for listening
+  const recognitionRef = useRef<any>(null); // Ref to hold the SpeechRecognition instance
 
   useEffect(() => {
     setRandomQuestions(getRandomQuestions(suggestedQuestions));
@@ -96,8 +100,50 @@ const ChatPage: React.FC = () => {
     }
   }, [chatHistory]);
 
+  useEffect(() => {
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.lang = "en-US";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        const transcript = event.results[0][0].transcript;
+        setUserInput((prev) => (prev ? prev + " " + transcript : transcript));
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error", event.error);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    } else {
+      console.warn("Speech Recognition API is not supported in this browser.");
+    }
+  }, []);
+
   const handleUserInput = (e: ChangeEvent<HTMLInputElement>) => {
     setUserInput(e.target.value);
+  };
+
+  const handleVoiceInput = () => {
+    if (!SpeechRecognition) {
+      alert("Sorry, your browser does not support speech recognition.");
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -190,12 +236,10 @@ const ChatPage: React.FC = () => {
             {chatHistory.length === 0 ? (
               <div className="mt-4">
                 <div className="flex flex-wrap mt-2">
-                  {
-                    <SuggestedQuestions
-                      questions={randomQuestions}
-                      onQuestionClick={handleSuggestedQuestionClick}
-                    />
-                  }
+                  <SuggestedQuestions
+                    questions={randomQuestions}
+                    onQuestionClick={handleSuggestedQuestionClick}
+                  />
                 </div>
               </div>
             ) : (
@@ -221,6 +265,16 @@ const ChatPage: React.FC = () => {
               className="text-white"
               color="primary"
             />
+
+            {/* Voice Input Button */}
+            <Button
+              type="button"
+              onClick={handleVoiceInput}
+              className="ml-2 bg-green-600 hover:bg-green-700 flex items-center justify-center"
+              aria-label={isListening ? "Stop voice input" : "Start voice input"}
+            >
+              {isListening ? <FaMicrophoneSlash /> : <FaMicrophone />}
+            </Button>
 
             <Button
               type="submit"
