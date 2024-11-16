@@ -1,9 +1,9 @@
 "use client";
+
 import React, { useState } from "react";
 import {
   Card,
   Button,
-  Input,
   Textarea,
   Select,
   SelectItem,
@@ -60,7 +60,7 @@ export default function VideoFeed(): JSX.Element {
       setUserQuestion("");
     } catch (error) {
       console.error("Error:", error);
-      // Handle error appropriately in your app
+      // Optionally, you can set an error state here to display to the user
     } finally {
       setLoading(false);
     }
@@ -77,11 +77,13 @@ export default function VideoFeed(): JSX.Element {
               placeholder="Choose an image"
               selectedKeys={new Set([selectedImage])}
               onSelectionChange={(keys) =>
-                setSelectedImage(Array.from(keys)[0])
+                setSelectedImage(Array.from(keys)[0] as string) // Type assertion added here
               }
             >
               {sampleImages.map((image) => (
-                <SelectItem key={image}>{image}</SelectItem>
+                <SelectItem key={image} value={image}>
+                  {image}
+                </SelectItem>
               ))}
             </Select>
 
