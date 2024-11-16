@@ -4,107 +4,136 @@ import styled from "styled-components";
 const LoadV1 = () => {
   return (
     <StyledWrapper>
-      <div className="container">
-        <div className="loader">
-          <div className="crystal" />
-          <div className="crystal" />
-          <div className="crystal" />
-          <div className="crystal" />
-          <div className="crystal" />
-          <div className="crystal" />
+      <div className="loader">
+        <div className="box">
+          <div className="logo">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="200"
+              height="50"
+              viewBox="0 0 200 50"
+              className="svg"
+            >
+              <text
+                x="50%"
+                y="50%"
+                dominant-baseline="middle"
+                text-anchor="middle"
+                font-size="100"
+                fill="#000"
+              >
+                AI
+              </text>
+            </svg>
+          </div>
         </div>
+        <div className="box" />
+        <div className="box" />
+        <div className="box" />
+        <div className="box" />
       </div>
     </StyledWrapper>
   );
 };
 
 const StyledWrapper = styled.div`
-  .container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
   .loader {
+    --size: 250px;
+    --duration: 2s;
+    --logo-color: grey;
+    --background: linear-gradient(
+      0deg,
+      rgba(50, 50, 50, 0.2) 0%,
+      rgba(100, 100, 100, 0.2) 100%
+    );
+    height: var(--size);
+    aspect-ratio: 1;
     position: relative;
-    width: 200px;
-    height: 200px;
-    perspective: 800px;
   }
 
-  .crystal {
+  .loader .box {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 60px;
-    height: 60px;
-    opacity: 0;
-    transform-origin: bottom center;
-    transform: translate(-50%, -50%) rotateX(45deg) rotateZ(0deg);
-    animation:
-      spin 4s linear infinite,
-      emerge 2s ease-in-out infinite alternate,
-      fadeIn 0.3s ease-out forwards;
-    border-radius: 10px;
-    visibility: hidden;
+    background: rgba(100, 100, 100, 0.15);
+    background: var(--background);
+    border-radius: 50%;
+    border-top: 1px solid rgba(100, 100, 100, 1);
+    box-shadow: rgba(0, 0, 0, 0.3) 0px 10px 10px -0px;
+    backdrop-filter: blur(5px);
+    animation: ripple var(--duration) infinite ease-in-out;
   }
 
-  @keyframes spin {
-    from {
-      transform: translate(-50%, -50%) rotateX(45deg) rotateZ(0deg);
-    }
-    to {
-      transform: translate(-50%, -50%) rotateX(45deg) rotateZ(360deg);
-    }
+  .loader .box:nth-child(1) {
+    inset: 40%;
+    z-index: 99;
   }
 
-  @keyframes emerge {
-    0%,
-    100% {
-      transform: translate(-50%, -50%) scale(0.5);
-      opacity: 0;
-    }
-    50% {
-      transform: translate(-50%, -50%) scale(1);
-      opacity: 1;
-    }
+  .loader .box:nth-child(2) {
+    inset: 30%;
+    z-index: 98;
+    border-color: rgba(100, 100, 100, 0.8);
+    animation-delay: 0.2s;
   }
 
-  @keyframes fadeIn {
-    to {
-      visibility: visible;
-      opacity: 0.8;
-    }
+  .loader .box:nth-child(3) {
+    inset: 20%;
+    z-index: 97;
+    border-color: rgba(100, 100, 100, 0.6);
+    animation-delay: 0.4s;
   }
 
-  .crystal:nth-child(1) {
-    background: linear-gradient(45deg, #003366, #336699);
-    animation-delay: 0s;
-  }
-
-  .crystal:nth-child(2) {
-    background: linear-gradient(45deg, #003399, #3366cc);
-    animation-delay: 0.3s;
-  }
-
-  .crystal:nth-child(3) {
-    background: linear-gradient(45deg, #0066cc, #3399ff);
+  .loader .box:nth-child(4) {
+    inset: 10%;
+    z-index: 96;
+    border-color: rgba(100, 100, 100, 0.4);
     animation-delay: 0.6s;
   }
 
-  .crystal:nth-child(4) {
-    background: linear-gradient(45deg, #0099ff, #66ccff);
-    animation-delay: 0.9s;
+  .loader .box:nth-child(5) {
+    inset: 0%;
+    z-index: 95;
+    border-color: rgba(100, 100, 100, 0.2);
+    animation-delay: 0.8s;
   }
 
-  .crystal:nth-child(5) {
-    background: linear-gradient(45deg, #33ccff, #99ccff);
-    animation-delay: 1.2s;
+  .loader .logo {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    padding: 30%;
   }
 
-  .crystal:nth-child(6) {
-    background: linear-gradient(45deg, #66ffff, #ccffff);
-    animation-delay: 1.5s;
+  .loader .logo svg {
+    fill: var(--logo-color);
+    width: 100%;
+    animation: color-change var(--duration) infinite ease-in-out;
+  }
+
+  @keyframes ripple {
+    0% {
+      transform: scale(1);
+      box-shadow: rgba(0, 0, 0, 0.3) 0px 10px 10px -0px;
+    }
+    50% {
+      transform: scale(1.3);
+      box-shadow: rgba(0, 0, 0, 0.3) 0px 30px 20px -0px;
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: rgba(0, 0, 0, 0.3) 0px 10px 10px -0px;
+    }
+  }
+
+  @keyframes color-change {
+    0% {
+      fill: var(--logo-color);
+    }
+    50% {
+      fill: white;
+    }
+    100% {
+      fill: var(--logo-color);
+    }
   }
 `;
 
