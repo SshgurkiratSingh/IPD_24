@@ -12,6 +12,7 @@ import { Select, SelectSection, SelectItem } from "@nextui-org/select";
 import { Button } from "@nextui-org/button";
 import { Divider } from "@nextui-org/divider";
 import React, { useState, ChangeEvent } from "react";
+
 interface HistoryEntry {
   timestamp: string;
   value: string | number;
@@ -24,6 +25,10 @@ interface GroupedTopics {
 export default function App() {
   const [topic, setTopic] = useState<string>("room/temperature");
   const [data, setData] = useState<HistoryEntry[]>([]);
+  const [startDate, setStartDate] = useState<string>("2024-11-11T00:00:00");
+  const [endDate, setEndDate] = useState<string>(
+    new Date().toISOString().slice(0, 16)
+  );
 
   const topicOptions: string[] = [
     // Room Topics
@@ -88,6 +93,8 @@ export default function App() {
     try {
       const params = new URLSearchParams({
         topic,
+        start: new Date(startDate).toISOString(),
+        end: new Date(endDate).toISOString(),
       });
 
       const response = await fetch(`/api/v3/history?${params.toString()}`);
@@ -137,6 +144,26 @@ export default function App() {
               </SelectSection>
             ))}
           </Select>
+        </div>
+        <div style={{ marginBottom: "1rem" }}>
+          <label>
+            Start Date:
+            <input
+              type="datetime-local"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </label>
+        </div>
+        <div style={{ marginBottom: "1rem" }}>
+          <label>
+            End Date:
+            <input
+              type="datetime-local"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </label>
         </div>
         <Button onPress={fetchData}>Fetch History</Button>
         <Divider style={{ margin: "1rem 0" }} />

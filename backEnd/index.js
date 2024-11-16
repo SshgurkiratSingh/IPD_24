@@ -22,6 +22,8 @@ app.get("/", (req, res) => {
 app.use("/api/v1", require("./routes/llmChat"));
 app.use("/api/v2", require("./routes/automationPanel"));
 app.use("/api/v3", require("./routes/history"));
+app.use("/api/v4", require("./routes/cctvChat"));
+
 app.listen(port, "0.0.0.0", () => {
   console.log(`Server is online at port ${port}!`);
   console.log(`http://localhost:${port}`);

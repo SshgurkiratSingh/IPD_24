@@ -1,0 +1,236 @@
+{
+  "room/temperature": [
+    {
+      "timestamp": 1731751500535,
+      "value": "22"
+    }
+  ],
+  "room/humidity": [
+    {
+      "timestamp": 1731751500535,
+      "value": "57"
+    }
+  ],
+  "room/light": [
+    {
+      "timestamp": 1731751500535,
+      "value": "1"
+    }
+  ],
+  "room/fan": [
+    {
+      "timestamp": 1731751500535,
+      "value": "80"
+    }
+  ],
+  "room/brightness": [
+    {
+      "timestamp": 1731751500535,
+      "value": "80"
+    }
+  ],
+  "room/switchboard": [
+    {
+      "timestamp": 1731751500535,
+      "value": "1"
+    }
+  ],
+  "room/pir": [
+    {
+      "timestamp": 1731751500535,
+      "value": "0"
+    }
+  ],
+  "room/alert": [
+    {
+      "timestamp": 1731751500535,
+      "value": "0"
+    }
+  ],
+  "hall/temperature": [
+    {
+      "timestamp": 1731751500535,
+      "value": "10"
+    }
+  ],
+  "hall/humidity": [
+    {
+      "timestamp": 1731751500535,
+      "value": "54"
+    }
+  ],
+  "hall/light1": [
+    {
+      "timestamp": 1731751500535,
+      "value": "0"
+    }
+  ],
+  "hall/ambientLight": [
+    {
+      "timestamp": 1731751500535,
+      "value": "1"
+    }
+  ],
+  "hall/fan": [
+    {
+      "timestamp": 1731751500535,
+      "value": "52"
+    }
+  ],
+  "hall/brightness": [
+    {
+      "timestamp": 1731751500535,
+      "value": "100"
+    }
+  ],
+  "hall/oled": [
+    {
+      "timestamp": 1731751500535,
+      "value": "0"
+    }
+  ],
+  "hall/tv": [
+    {
+      "timestamp": 1731751500535,
+      "value": "0"
+    }
+  ],
+  "hall/gas": [
+    {
+      "timestamp": 1731751500535,
+      "value": "0"
+    }
+  ],
+  "hall/switchboard": [
+    {
+      "timestamp": 1731751500535,
+      "value": "1"
+    }
+  ],
+  "hall/alert": [
+    {
+      "timestamp": 1731751500535,
+      "value": "0"
+    }
+  ],
+  "waterTank/waterLevel": [
+    {
+      "timestamp": 1731751500535,
+      "value": "1"
+    }
+  ],
+  "waterTank/ph": [
+    {
+      "timestamp": 1731751500535,
+      "value": "1"
+    }
+  ],
+  "waterTank/turbidity": [
+    {
+      "timestamp": 1731751500535,
+      "value": "0"
+    }
+  ],
+  "lawn/light1": [
+    {
+      "timestamp": 1731751500535,
+      "value": "0"
+    }
+  ],
+  "lawn/light2": [
+    {
+      "timestamp": 1731751500535,
+      "value": "0"
+    }
+  ],
+  "lawn/light3": [
+    {
+      "timestamp": 1731751500535,
+      "value": "0"
+    }
+  ],
+  "lawn/light4": [
+    {
+      "timestamp": 1731751500535,
+      "value": "0"
+    }
+  ],
+  "lawn/ultrasonic1": [
+    {
+      "timestamp": 1731751500535,
+      "value": "1"
+    }
+  ],
+  "lawn/ultrasonic2": [
+    {
+      "timestamp": 1731751500535,
+      "value": "1"
+    }
+  ],
+  "lawn/lightIntensity": [
+    {
+      "timestamp": 1731751500535,
+      "value": "1"
+    }
+  ],
+  "lawn/autonomousLighting": [
+    {
+      "timestamp": 1731751500535,
+      "value": "0"
+    }
+  ],
+  "homeGarden/rainSensor": [
+    {
+      "timestamp": 1731751500535,
+      "value": "0"
+    }
+  ],
+  "homeGarden/soilMoisture": [
+    {
+      "timestamp": 1731751500535,
+      "value": "1"
+    }
+  ],
+  "homeGarden/pumpStatus": [
+    {
+      "timestamp": 1731751500535,
+      "value": "0"
+    }
+  ],
+  "homeGarden/gateStatus": [
+    {
+      "timestamp": 1731751500535,
+      "value": "1"
+    }
+  ],
+  "dustbin/fullStatus": [
+    {
+      "timestamp": 1731751500535,
+      "value": "1"
+    }
+  ],
+  "garage/light1": [
+    {
+      "timestamp": 1731751500535,
+      "value": "0"
+    }
+  ],
+  "garage/doorStatus": [
+    {
+      "timestamp": 1731751500535,
+      "value": "0"
+    }
+  ],
+  "garage/pir1": [
+    {
+      "timestamp": 1731751500535,
+      "value": "1"
+    }
+  ],
+  "garage/alert": [
+    {
+      "timestamp": 1731751500535,
+      "value": "1"
+    }
+  ]
+}

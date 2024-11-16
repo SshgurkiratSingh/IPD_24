@@ -1,23 +1,26 @@
+// Import necessary modules
 const express = require("express");
 const router = express.Router();
 const cors = require("cors");
-const { PrismaClient } = require("@prisma/client");
-const taskHelper = require("../helper/taskHelper");
-const { OpenAI } = require("openai");
+const { PrismaClient } = require("@prisma/client"); // Ensure Prisma is properly set up
+const { OpenAI } = require("openai"); // Ensure OpenAI package is installed and configured
 const mqtt = require("mqtt");
 const fs = require("fs-extra");
 const path = require("path");
 const cron = require("node-cron");
 
+// Middleware setup
 router.use(express.json());
 router.use(express.urlencoded({ extended: true }));
 router.use(cors());
 
+// Initialize OpenAI client
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY2,
+  apiKey: process.env.OPENAI_API_KEY2, // Ensure this environment variable is set
 });
 
-const client = mqtt.connect("mqtt://localhost:1883");
+// Connect to MQTT broker
+const client = mqtt.connect("mqtt://localhost:1883"); // Update the broker URL if different
 
 // Directory to store logs
 const LOG_DIR = path.join(__dirname, "..", "logs");
@@ -27,6 +30,9 @@ fs.ensureDirSync(LOG_DIR);
 
 // In-memory log storage: Map<topic, Array<{ timestamp, value }>>
 const inMemoryLogs = new Map();
+
+// Additional in-memory logs for 5-minute persistence
+const inMemoryLogs5Min = new Map();
 
 // Define the topics as a Set (unique)
 const topicSet = new Set([
@@ -91,9 +97,10 @@ const topicSet = new Set([
 // Initialize in-memory logs for each topic
 topicSet.forEach((topic) => {
   inMemoryLogs.set(topic, []);
+  inMemoryLogs5Min.set(topic, []); // Initialize 5-minute logs
 });
 
-// Helper function to prune logs older than 8 hours
+// Helper function to prune logs older than 8 hours from inMemoryLogs
 const pruneOldLogs = () => {
   const eightHoursAgo = Date.now() - 8 * 60 * 60 * 1000;
   inMemoryLogs.forEach((logs, topic) => {
@@ -107,7 +114,33 @@ const pruneOldLogs = () => {
 // Schedule pruning every 10 minutes
 setInterval(pruneOldLogs, 10 * 60 * 1000);
 
-// MQTT Message Handler
+// Route to get history data for a topic or all topics
+router.get("/", (req, res) => {
+  const { topic } = req.query;
+  const allTopicsData = {};
+
+  if (topic) {
+    if (!inMemoryLogs.has(topic)) {
+      return res.status(400).json({
+        error: "Invalid topic",
+      });
+    }
+    const logs = inMemoryLogs.get(topic);
+    return res.json({
+      topic,
+      data: logs,
+    });
+  }
+
+  // If no specific topic is requested, return all topics data
+  inMemoryLogs.forEach((logs, topic) => {
+    allTopicsData[topic] = logs;
+  });
+
+  res.json(allTopicsData);
+});
+
+// MQTT Connection and Subscription
 client.on("connect", () => {
   console.log("Connected to MQTT broker.");
   client.subscribe(Array.from(topicSet), (err) => {
@@ -119,24 +152,24 @@ client.on("connect", () => {
   });
 });
 
+// MQTT Message Handler
 client.on("message", (topic, message) => {
   const value = message.toString();
   const timestamp = Date.now();
 
   if (topicSet.has(topic)) {
-    // Update in-memory logs
+    // Update in-memory logs for hourly persistence
     const logs = inMemoryLogs.get(topic) || [];
-    // Check for value change
+    // Check for value change to avoid duplicate consecutive entries
     if (logs.length === 0 || logs[logs.length - 1].value !== value) {
       logs.push({ timestamp, value });
       inMemoryLogs.set(topic, logs);
     }
 
-    // Optionally, you can also store logs in the database using Prisma
-    // Example:
-    // prisma.log.create({
-    //   data: { topic, value, timestamp: new Date(timestamp) },
-    // });
+    // Update in-memory logs for 5-minute persistence
+    const logs5Min = inMemoryLogs5Min.get(topic) || [];
+    logs5Min.push({ timestamp, value });
+    inMemoryLogs5Min.set(topic, logs5Min);
   }
 });
 
@@ -186,6 +219,49 @@ const persistLogs = () => {
 // Schedule log persistence at the start of every hour
 cron.schedule("0 * * * *", () => {
   persistLogs();
+});
+
+// Helper function to get log file path for a specific 5-minute interval
+const getLogFilePath5Min = (date) => {
+  const year = date.getFullYear();
+  const month = `0${date.getMonth() + 1}`.slice(-2);
+  const day = `0${date.getDate()}`.slice(-2);
+  const hour = `0${date.getHours()}`.slice(-2);
+  const minute = `0${date.getMinutes()}`.slice(-2);
+  const dir = path.join(LOG_DIR, `${year}-${month}-${day}`);
+  fs.ensureDirSync(dir);
+  return path.join(dir, `${hour}-${minute}.json`);
+};
+
+// Function to persist in-memory logs to files every 5 minutes
+const persistLogsEvery5Min = () => {
+  const now = new Date();
+  const logFilePath = getLogFilePath5Min(now);
+
+  const dataToWrite = {};
+
+  inMemoryLogs5Min.forEach((logs, topic) => {
+    if (logs.length > 0) {
+      dataToWrite[topic] = logs;
+    }
+  });
+
+  fs.writeJson(logFilePath, dataToWrite, { spaces: 2 }, (err) => {
+    if (err) {
+      console.error("Error writing 5-minute log file:", err);
+    } else {
+      console.log(`5-minute logs persisted to ${logFilePath}`);
+      // After persing, clear the 5-minute in-memory logs
+      inMemoryLogs5Min.forEach((logs, topic) => {
+        inMemoryLogs5Min.set(topic, []);
+      });
+    }
+  });
+};
+
+// Schedule 5-minute log persistence
+cron.schedule("*/5 * * * *", () => {
+  persistLogsEvery5Min();
 });
 
 // Helper function to clean up old log files (older than 15 days)
