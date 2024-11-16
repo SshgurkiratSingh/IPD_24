@@ -189,9 +189,11 @@ const ChatPage: React.FC = () => {
           }
         }
 
+        // Update the live transcript for display purposes
         setLiveTranscript(finalTranscript + interimTranscript);
 
-        if (finalTranscript) {
+        // Only submit when the final transcript is available
+        if (finalTranscript.trim()) {
           handleVoiceInputSubmit(finalTranscript.trim());
         }
       };
