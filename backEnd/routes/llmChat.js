@@ -8,7 +8,7 @@ const mqttService = require("../services/mqttService");
 router.use(express.json());
 router.use(express.urlencoded({ extended: true }));
 router.use(cors());
-
+// 
 // Chat route
 router.post("/chat", chatController.handleChatRequest);
 

@@ -65,7 +65,7 @@ client.on("message", (topic, message) => {
 
   const [area, component] = topicParts;
   logs = logs.filter((log) => log.topic !== topic);
-  console.log(topic, message.toString());
+  // console.log(topic, message.toString());
   logs.push({
     topic: topic,
     value: message.toString(),

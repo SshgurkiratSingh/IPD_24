@@ -24,7 +24,6 @@ const genAI = new GoogleGenerativeAI(apiKey);
 const fileManager = new GoogleAIFileManager(apiKey);
 
 const app = express();
-const port = process.env.PORT || 3000;
 
 app.use(express.json()); // For parsing application/json
 
@@ -267,8 +266,5 @@ router.post("/chat", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
 
 module.exports = router;
