@@ -19,6 +19,7 @@ import ChatHeader from "@/components/ChatHeader";
 import ChatMessage from "@/components/ChatMessage";
 import SuggestedQuestions from "@/components/SuggestedQuestions";
 import LoadV1 from "@/components/loader";
+import { toast } from "react-toastify";
 
 // Define SpeechRecognition type for TypeScript
 const SpeechRecognition =
@@ -274,9 +275,14 @@ const ChatPage: React.FC = () => {
     e.preventDefault();
 
     if (!userInput.trim()) {
+      toast.error("Please enter a message");
       return;
     }
-
+    // if userInput is less than 2 words
+    if (userInput.trim().split(" ").length < 3) {
+      toast.error("Please enter at least 2 words");
+      return;
+    }
     const newMessage: ChatMessage = {
       type: "user",
       text: userInput.trim(),
