@@ -17,6 +17,7 @@ import {
   FaRobot,
   FaUser,
 } from "react-icons/fa";
+import VideoCamFeed from "../video-feed";
 
 export interface ObjectIdentification {
   type: string; // Type of object (e.g., person, vehicle, animal)
@@ -292,7 +293,7 @@ export default function VideoFeed(): JSX.Element {
             ))}
           </div>
         </div>
-
+        <VideoCamFeed />
         {/* User Input */}
       </div>
     </div>

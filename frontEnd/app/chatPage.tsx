@@ -1,4 +1,5 @@
 "use client";
+
 import React, {
   useState,
   ChangeEvent,
@@ -85,17 +86,39 @@ const ChatPage: React.FC = () => {
     setRandomQuestions(getRandomQuestions(suggestedQuestions));
   }, []);
 
+  // Updated useEffect for Speech Synthesis with Voice Mode Check
   useEffect(() => {
-    if (chatHistory.length > 0) {
+    if (isVoiceMode && chatHistory.length > 0) {
+      // Check if voice mode is active
       const lastMessage = chatHistory[chatHistory.length - 1];
       if (lastMessage.type === "assistant") {
-        const utterance = new SpeechSynthesisUtterance(
-          lastMessage.data?.reply || lastMessage.text
-        );
-        window.speechSynthesis.speak(utterance);
+        // Cancel any ongoing speech to prevent overlap
+        window.speechSynthesis.cancel();
+
+        try {
+          const utterance = new SpeechSynthesisUtterance(
+            lastMessage.data?.reply || lastMessage.text
+          );
+
+          // Optional: Customize voice and language
+          utterance.lang = "en-US";
+          // You can set other properties like pitch, rate, etc., if desired
+          // utterance.pitch = 1;
+          // utterance.rate = 1;
+
+          // Error handling for speech synthesis
+          utterance.onerror = (event) => {
+            console.error("Speech synthesis error:", event.error);
+          };
+
+          window.speechSynthesis.speak(utterance);
+        } catch (error) {
+          console.error("Speech synthesis error:", error);
+        }
       }
     }
-  }, [chatHistory]);
+  }, [chatHistory, isVoiceMode]); // Added isVoiceMode to dependencies
+
   const handleVoiceInputSubmit = useCallback(
     async (transcript: string) => {
       if (!transcript.trim()) {
@@ -168,6 +191,7 @@ const ChatPage: React.FC = () => {
     },
     [chatHistory]
   );
+
   // Initialize Speech Recognition
   useEffect(() => {
     if (SpeechRecognition) {
@@ -240,10 +264,12 @@ const ChatPage: React.FC = () => {
     setIsVoiceMode(false);
     setIsListening(false);
     setLiveTranscript("");
+
+    // Cancel any ongoing speech synthesis when ending voice mode
+    window.speechSynthesis.cancel();
   };
 
   // Handle the submission of voice input
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -377,7 +403,7 @@ const ChatPage: React.FC = () => {
             </Button>
           </form>
         </CardBody>
-        <CardFooter>
+        <CardFooter className="flex justify-between items-center">
           <Button
             variant="shadow"
             color="secondary"
@@ -393,16 +419,28 @@ const ChatPage: React.FC = () => {
               setLiveTranscript("");
 
               recognitionRef.current.stop();
+              window.speechSynthesis.cancel(); // Cancel any ongoing speech
             }}
           >
             Clear Chat
           </Button>
           <Button
-            onClick={handleVoiceMode}
-            className="bg-blue-600 hover:bg-blue-700 flex items-center"
+            onClick={isVoiceMode ? endVoiceMode : handleVoiceMode}
+            className={`bg-blue-600 hover:bg-blue-700 flex items-center ${
+              isVoiceMode ? "bg-red-600 hover:bg-red-700" : ""
+            }`}
           >
-            <FaMicrophone className="mr-2" />
-            Voice Mode
+            {isVoiceMode ? (
+              <>
+                <FaMicrophoneSlash className="mr-2" />
+                End Voice Mode
+              </>
+            ) : (
+              <>
+                <FaMicrophone className="mr-2" />
+                Voice Mode
+              </>
+            )}
           </Button>
         </CardFooter>
       </Card>
@@ -410,10 +448,9 @@ const ChatPage: React.FC = () => {
       {/* Voice Mode Overlay */}
       {isVoiceMode && (
         <div className="fixed inset-0 bg-black bg-opacity-80 flex flex-col items-center justify-center z-50">
-          {/* Animation (you can replace this with any animation you like) */}
+          {/* Animation */}
           <div className="mb-8">
-            {/* Simple pulsating circle animation */}
-            {/* <div className="w-24 h-24 rounded-full bg-blue-500 animate-pulse"></div> */}
+            {/* You can replace this with any animation you like */}
             <LoadV1 />
           </div>
 

@@ -16,21 +16,18 @@ interface ChatHistoryEntry {
   parts: Array<{ text: string }>;
 }
 
-export default function VideoFeed(): JSX.Element {
-  const [selectedImage, setSelectedImage] = useState<string>("hall1.png");
+export default function VideoCamFeed(): JSX.Element {
+  const [selectedStream, setSelectedStream] = useState<string>("door");
   const [userQuestion, setUserQuestion] = useState<string>("");
   const [chatHistory, setChatHistory] = useState<ChatHistoryEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const sampleImages: string[] = [
-    "door1.png",
-    "garage1.png",
-    "hall1.png",
-    "hall2.png",
-    "hall3.png",
-    "lawn1.png",
-    "room1.png",
-    "room2.png",
+  // Define available streams
+  const availableStreams: { name: string; endpoint: string }[] = [
+    { name: "Door", endpoint: "door" },
+    { name: "Garage", endpoint: "garage" },
+    { name: "Lawn", endpoint: "lawn" },
+    // Add more streams if needed
   ];
 
   const handleSend = async (): Promise<void> => {
@@ -42,7 +39,7 @@ export default function VideoFeed(): JSX.Element {
       const response = await axios.post<{ response: string }>(
         "http://localhost:2500/api/v4/chat",
         {
-          imageName: selectedImage,
+          imageName: `${selectedStream}.mp4`,
           userQuestion,
           history: chatHistory,
         }
@@ -71,33 +68,35 @@ export default function VideoFeed(): JSX.Element {
       <Card>
         <CardBody>
           <div className="flex flex-col space-y-4">
-            {/* Image Selection */}
+            {/* Stream Selection */}
             <Select
-              label="Select Image"
-              placeholder="Choose an image"
-              selectedKeys={new Set([selectedImage])}
+              label="Select Stream"
+              placeholder="Choose a stream"
+              selectedKeys={new Set([selectedStream])}
               onSelectionChange={(keys) =>
-                setSelectedImage(Array.from(keys)[0] as string) // Type assertion added here
+                setSelectedStream(Array.from(keys)[0] as string)
               }
             >
-              {sampleImages.map((image) => (
-                <SelectItem key={image} value={image}>
-                  {image}
+              {availableStreams.map((stream) => (
+                <SelectItem key={stream.endpoint} value={stream.endpoint}>
+                  {stream.name}
                 </SelectItem>
               ))}
             </Select>
 
-            {/* Display Selected Image */}
-            <img
-              src={`https://ipd-24.vercel.app/${selectedImage}`}
-              alt="Selected CCTV"
-              className="w-full h-auto border rounded"
-            />
+            {/* Display Live Stream */}
+            <div className="w-full h-auto border rounded">
+              <img
+                src={`http://localhost:5000/${selectedStream}`}
+                alt={`${selectedStream} Stream`}
+                className="w-full h-auto"
+              />
+            </div>
 
             {/* User Question Input */}
             <Textarea
               label="Your Question"
-              placeholder="Ask something about the image..."
+              placeholder="Ask something about the stream..."
               value={userQuestion}
               onChange={(e) => setUserQuestion(e.target.value)}
             />

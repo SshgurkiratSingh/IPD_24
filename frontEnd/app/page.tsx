@@ -9,6 +9,7 @@ import { GithubIcon } from "@/components/icons";
 import { FaRobot, FaComments, FaMicrochip } from "react-icons/fa";
 import ChatPage from "./chatPage";
 import "regenerator-runtime/runtime"; // Add this line
+import VideoFeed from "./video-feed";
 
 export default function Home() {
   return (
@@ -19,6 +20,7 @@ export default function Home() {
         <FaMicrochip className="text-4xl text-success" />
       </div>
       <ChatPage />
+      {/* <VideoFeed /> */}
     </section>
   );
 }
