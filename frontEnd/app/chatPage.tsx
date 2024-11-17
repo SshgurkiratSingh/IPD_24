@@ -154,7 +154,7 @@ const ChatPage: React.FC = () => {
           },
           body: JSON.stringify({
             userMessage: newMessage.text,
-            history: historyForAPI.slice(-2),
+            history: historyForAPI.slice(-5),
           }),
         });
 
