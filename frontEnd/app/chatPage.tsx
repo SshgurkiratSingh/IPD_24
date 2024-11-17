@@ -1,12 +1,6 @@
 "use client";
 
-import React, {
-  useState,
-  ChangeEvent,
-  useRef,
-  useEffect,
-  useCallback,
-} from "react";
+import React, { useState, ChangeEvent, useRef, useEffect } from "react";
 import { FaMicrophone, FaMicrophoneSlash } from "react-icons/fa";
 
 import { Card, CardHeader, CardBody, CardFooter } from "@nextui-org/card";
@@ -83,6 +77,14 @@ const ChatPage: React.FC = () => {
   const [liveTranscript, setLiveTranscript] = useState<string>(""); // Live transcript state
   const recognitionRef = useRef<any>(null);
 
+  // Create a ref to hold the latest chatHistory
+  const chatHistoryRef = useRef<ChatMessage[]>(chatHistory);
+
+  // Synchronize the ref with the chatHistory state
+  useEffect(() => {
+    chatHistoryRef.current = chatHistory;
+  }, [chatHistory]);
+
   useEffect(() => {
     setRandomQuestions(getRandomQuestions(suggestedQuestions));
   }, []);
@@ -120,24 +122,28 @@ const ChatPage: React.FC = () => {
     }
   }, [chatHistory, isVoiceMode]); // Added isVoiceMode to dependencies
 
-  const handleVoiceInputSubmit = useCallback(
-    async (transcript: string) => {
-      if (!transcript.trim()) {
-        return;
-      }
+  const handleVoiceInputSubmit = async (transcript: string) => {
+    if (!transcript.trim()) {
+      return;
+    }
+    // If transcript is less than 3 words
+    if (transcript.split(" ").length < 3) {
+      toast.error("Please speak clearly and try again.");
+      return;
+    }
+    const newMessage: ChatMessage = {
+      type: "user",
+      text: transcript.trim(),
+    };
 
-      const newMessage: ChatMessage = {
-        type: "user",
-        text: transcript.trim(),
-      };
+    setChatHistory((prev) => [...prev, newMessage]);
+    setIsLoading(true);
+    setLiveTranscript("");
 
-      setChatHistory((prev) => [...prev, newMessage]);
-      setIsLoading(true);
-      setLiveTranscript("");
-
-      try {
-        // Prepare conversation history for the API
-        const historyForAPI = [...chatHistory, newMessage].map((msg) => ({
+    try {
+      // Prepare conversation history for the API using the ref
+      const historyForAPI = [...chatHistoryRef.current, newMessage].map(
+        (msg) => ({
           role: msg.type === "user" ? "user" : "assistant",
           content:
             msg.type === "user"
@@ -145,53 +151,52 @@ const ChatPage: React.FC = () => {
               : msg.data
                 ? msg.data.reply
                 : msg.text,
-        }));
+        })
+      );
 
-        const response = await fetch("/api/v1/chat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            userMessage: newMessage.text,
-            history: historyForAPI.slice(-5),
-          }),
-        });
+      const response = await fetch("/api/v1/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userMessage: newMessage.text,
+          history: historyForAPI.slice(-5),
+        }),
+      });
 
-        const data = await response.json();
+      const data = await response.json();
 
-        if (response.ok) {
-          const assistantData = data.reply;
+      if (response.ok) {
+        const assistantData = data.reply;
 
-          const assistantMessage: ChatMessage = {
-            type: "assistant",
-            text: assistantData.reply,
-            data: assistantData,
-          };
-          setLiveTranscript(assistantData.reply);
-          setChatHistory((prev) => [...prev, assistantMessage]);
-        } else {
-          console.error("Error from API:", data.error);
-          const assistantMessage: ChatMessage = {
-            type: "assistant",
-            text: "An error occurred. Please try again later.",
-          };
-          setChatHistory((prev) => [...prev, assistantMessage]);
-        }
-      } catch (error) {
-        console.error("Error:", error);
+        const assistantMessage: ChatMessage = {
+          type: "assistant",
+          text: assistantData.reply,
+          data: assistantData,
+        };
+        setLiveTranscript(assistantData.reply);
+        setChatHistory((prev) => [...prev, assistantMessage]);
+      } else {
+        console.error("Error from API:", data.error);
         const assistantMessage: ChatMessage = {
           type: "assistant",
           text: "An error occurred. Please try again later.",
         };
         setChatHistory((prev) => [...prev, assistantMessage]);
-      } finally {
-        setIsLoading(false);
-        scrollToBottom();
       }
-    },
-    [chatHistory]
-  );
+    } catch (error) {
+      console.error("Error:", error);
+      const assistantMessage: ChatMessage = {
+        type: "assistant",
+        text: "An error occurred. Please try again later.",
+      };
+      setChatHistory((prev) => [...prev, assistantMessage]);
+    } finally {
+      setIsLoading(false);
+      scrollToBottom();
+    }
+  };
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -238,10 +243,19 @@ const ChatPage: React.FC = () => {
       };
 
       recognitionRef.current = recognition;
+
+      if (isVoiceMode) {
+        recognition.start();
+      }
+
+      // Cleanup function to stop recognition on unmount
+      return () => {
+        recognition.stop();
+      };
     } else {
       console.warn("Speech Recognition API is not supported in this browser.");
     }
-  }, [isVoiceMode, handleVoiceInputSubmit]);
+  }, [isVoiceMode]);
 
   const handleUserInput = (e: ChangeEvent<HTMLInputElement>) => {
     setUserInput(e.target.value);
@@ -256,12 +270,13 @@ const ChatPage: React.FC = () => {
     setIsVoiceMode(true);
     setIsListening(true);
     setLiveTranscript("");
-    recognitionRef.current.start();
+    // Start recognition
+    recognitionRef.current && recognitionRef.current.start();
   };
 
   // Function to end voice mode
   const endVoiceMode = () => {
-    recognitionRef.current.stop();
+    recognitionRef.current && recognitionRef.current.stop();
     setIsVoiceMode(false);
     setIsListening(false);
     setLiveTranscript("");
@@ -270,7 +285,7 @@ const ChatPage: React.FC = () => {
     window.speechSynthesis.cancel();
   };
 
-  // Handle the submission of voice input
+  // Handle the submission of text input
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -278,7 +293,7 @@ const ChatPage: React.FC = () => {
       toast.error("Please enter a message");
       return;
     }
-    // if userInput is less than 2 words
+    // If userInput is less than 2 words
     if (userInput.trim().split(" ").length < 3) {
       toast.error("Please enter at least 2 words");
       return;
@@ -424,7 +439,7 @@ const ChatPage: React.FC = () => {
               setIsListening(false);
               setLiveTranscript("");
 
-              recognitionRef.current.stop();
+              recognitionRef.current && recognitionRef.current.stop();
               window.speechSynthesis.cancel(); // Cancel any ongoing speech
             }}
           >
