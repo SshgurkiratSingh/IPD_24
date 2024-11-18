@@ -26,7 +26,7 @@ const nodePersist = require("node-persist"); // Import node-persist
   await nodePersist.init({
     dir: path.join(__dirname, "cache"), // Directory for cache storage
     encoding: "utf8",
-    ttl: 1000 * 60 * 60, // 1 hour in milliseconds
+    ttl: 24 * 1000 * 1000 * 60 * 60, // 1 hour in milliseconds
     // other options can be added here
   });
 })();
