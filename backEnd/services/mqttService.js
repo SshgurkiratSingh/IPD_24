@@ -13,7 +13,7 @@ const topicSet = new Set([
 
   // Hall Topics
   "hall/temperature", "hall/humidity", "hall/light1", "hall/ambientLight",
-  "hall/fan", "hall/brightness", "hall/oled", "hall/tv", "hall/gas",
+  "hall/fan", "hall/brightness", "hall/tv", "hall/gas",
   "hall/switchboard", "hall/alert",
 
   // Water Tank Topics
