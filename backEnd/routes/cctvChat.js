@@ -6,6 +6,7 @@ const cors = require("cors");
 const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
+require("dotenv").config(); // Ensure you have a .env file with GEMINI_API_KEY
 
 const {
   GoogleGenerativeAI,
@@ -13,8 +14,6 @@ const {
   HarmBlockThreshold,
 } = require("@google/generative-ai");
 const { GoogleAIFileManager } = require("@google/generative-ai/server");
-
-require("dotenv").config(); // Ensure you have a .env file with GEMINI_API_KEY
 
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
@@ -57,8 +56,7 @@ const generationConfig = {
           properties: {
             type: {
               type: "string",
-              description:
-                "Type of object (e.g., person, furniture, appliance)",
+              description: "Type of object (e.g., person, furniture, appliance)",
             },
             count: {
               type: "number",
@@ -230,26 +228,27 @@ async function processImageChat(imageName, userQuestion, history = []) {
     // Get room name
     const roomName = roomMapping[imageName] || "Unknown Room";
 
-    // Prepare the system prompt
+    // Prepare the system prompt within the user message
     const systemPrompt = `You are analyzing a CCTV image from the ${roomName}. Provide detailed analysis including object identification, activity analysis, potential issues, and recommendations. Ensure the response follows the specified JSON schema.`;
 
-    // Prepare the chat session with the system prompt and history
+    // Combine system prompt with user question
+    const combinedUserQuestion = `${systemPrompt}\n\nUser query: ${userQuestion}`;
+
+    // Prepare the chat history without 'system' role
+    const formattedHistory = history.map((item) => ({
+      role: item.role,
+      content:
+        item.role === "assistant" && typeof item.content !== "string"
+          ? JSON.stringify(item.content)
+          : item.content,
+    }));
+
     const chatHistory = [
-      {
-        role: "system",
-        content: systemPrompt,
-      },
-      // Include previous history if any
-      ...history.map((item) => ({
-        role: item.role,
-        content:
-          item.role === "assistant" && typeof item.content !== "string"
-            ? JSON.stringify(item.content)
-            : item.content,
-      })),
+      // Prepend combined system prompt and user question as the latest user message
+      ...formattedHistory,
       {
         role: "user",
-        content: userQuestion,
+        content: combinedUserQuestion,
       },
     ];
 
