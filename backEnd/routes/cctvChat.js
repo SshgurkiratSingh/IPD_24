@@ -19,6 +19,8 @@ const {
 const { GoogleAIFileManager } = require("@google/generative-ai/server");
 const { route } = require("./history");
 
+const NodeCache = require("node-cache"); // Import node-cache
+
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 const fileManager = new GoogleAIFileManager(apiKey);
@@ -26,6 +28,9 @@ const fileManager = new GoogleAIFileManager(apiKey);
 const app = express();
 
 app.use(express.json()); // For parsing application/json
+
+// Initialize cache with a default TTL of 1 hour (3600 seconds)
+const cache = new NodeCache({ stdTTL: 3600, checkperiod: 120 });
 
 /**
  * Uploads the given file to Gemini.
@@ -252,19 +257,34 @@ router.post("/chat", async (req, res) => {
       .json({ error: "imageName and userQuestion are required" });
   }
 
+  // Create a unique cache key based on imageName and userQuestion
+  const cacheKey = `${imageName}:${userQuestion}`;
+
+  // Check if the response is already in cache
+  const cachedResponse = cache.get(cacheKey);
+  if (cachedResponse) {
+    console.log(`Cache hit for key: ${cacheKey}`);
+    return res.json(cachedResponse);
+  }
+
   try {
     const responseText = await processImageChat(
       imageName,
       userQuestion,
       history
     );
-    res.json(JSON.parse(responseText));
+    const parsedResponse = JSON.parse(responseText);
+
+    // Store the response in cache
+    cache.set(cacheKey, parsedResponse);
+
+    res.json(parsedResponse);
   } catch (error) {
+    console.error("Error in /chat endpoint:", error);
     res
       .status(500)
       .json({ error: "An error occurred while processing your request." });
   }
 });
-
 
 module.exports = router;
