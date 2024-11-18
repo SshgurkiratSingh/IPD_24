@@ -1,7 +1,7 @@
 // VideoFeed.tsx
 
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 import axios from "axios";
 import { Select, SelectItem } from "@nextui-org/select";
@@ -12,12 +12,12 @@ import {
   FaRegFolder,
   FaRegFolderOpen,
   FaPaperPlane,
+  FaImage,
+  FaQuestion,
   FaRobot,
   FaUser,
-  FaImage,
 } from "react-icons/fa";
-// Remove VideoCamFeed if not needed or ensure it's configured properly
-// import VideoCamFeed from "../video-feed";
+import VideoCamFeed from "../video-feed";
 
 export interface ObjectIdentification {
   type: string; // Type of object (e.g., person, vehicle, animal)
@@ -58,41 +58,54 @@ export interface ChatHistoryEntry {
 }
 
 export default function VideoFeed(): JSX.Element {
-  // Rename selectedImage to selectedStream
-  const [selectedStream, setSelectedStream] = useState<string>("door");
+  const [selectedImage, setSelectedImage] = useState<string>("hall1.png");
   const [userQuestion, setUserQuestion] = useState<string>("");
   const [chatHistory, setChatHistory] = useState<ChatHistoryEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Update sampleImages to sampleStreams
-  const sampleStreams: string[] = [
-    "door",
-    "garage",
-    "lawn",
-    // Add more stream keys as defined in your backend
+  const sampleImages: string[] = [
+    "room2.png",
+    "room1.png",
+    "lawn1.png",
+    "hall3.png",
+    "hall2.png",
+    "hall1.png",
+    "garage1.png",
+    "door1.png",
   ];
 
-  const handleSend = async (): Promise<void> => {
-    if (userQuestion.trim() === "") return;
+  const suggestedQuestions: string[] = [
+    "What objects are present in the room?",
+    "Are there any unusual behaviors detected?",
+    "Provide a summary of the scene.",
+    "Identify potential safety concerns.",
+    "What additional insights can be derived from the footage?",
+  ];
+
+  const handleSend = async (question?: string): Promise<void> => {
+    const query = question || userQuestion.trim();
+    if (query === "") return;
 
     setLoading(true);
 
     try {
       const response = await axios.post<ChatResponse>("/api/v4/chat", {
-        streamKey: selectedStream, // Update parameter name if backend expects 'streamKey'
-        userQuestion,
+        imageName: selectedImage,
+        userQuestion: query,
       });
 
       const assistantResponse: ChatResponse = response.data;
 
       // Update chat history with latest message at the top
       setChatHistory((prevHistory) => [
-        { role: "user", content: userQuestion },
+        { role: "user", content: query },
         { role: "assistant", content: assistantResponse },
         ...prevHistory,
       ]);
 
-      setUserQuestion("");
+      if (!question) {
+        setUserQuestion("");
+      }
     } catch (error) {
       console.error("Error:", error);
       // Handle error appropriately in your app, e.g., show a notification
@@ -100,6 +113,26 @@ export default function VideoFeed(): JSX.Element {
       setLoading(false);
     }
   };
+
+  // Suggested Questions Component
+  const SuggestedQuestions: React.FC = () => (
+    <div className="mt-4">
+      <h3 className="text-lg font-semibold mb-2">Suggested Questions</h3>
+      <div className="flex flex-wrap gap-2">
+        {suggestedQuestions.map((question, idx) => (
+          <Button
+            key={idx}
+            variant="ghost"
+            color="primary"
+            onClick={() => handleSend(question)}
+            className="text-sm"
+          >
+            {question}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
 
   // Helper component to render assistant responses using Expandable Cards
   const renderAssistantResponse = (response: ChatResponse) => (
@@ -121,8 +154,7 @@ export default function VideoFeed(): JSX.Element {
         <ul className="list-disc list-inside">
           {response.object_identification.map((obj, idx) => (
             <li key={idx}>
-              <strong>{obj.type}</strong>: {obj.count} observed. Details:{" "}
-              {obj.details}
+              <strong>{obj.type}</strong>: {obj.count} observed. Details: {obj.details}
             </li>
           ))}
         </ul>
@@ -203,34 +235,30 @@ export default function VideoFeed(): JSX.Element {
 
   return (
     <div className="w-full h-screen flex flex-row">
-      {/* Left Panel: Stream Selection and Display */}
+      {/* Left Panel: Image Selection and Display */}
       <div className="w-full md:w-1/2 lg:w-2/5 p-4 flex flex-col space-y-4 overflow-y-auto">
         <div>
           <Select
-            label="Select Stream"
+            label="Select Image"
             startContent={<FaImage className="text-default-400" />}
-            placeholder="Choose a stream"
-            selectedKeys={new Set([selectedStream])}
+            placeholder="Choose an image"
+            selectedKeys={new Set([selectedImage])}
             onSelectionChange={(keys) =>
-              setSelectedStream(Array.from(keys)[0] as string)
+              setSelectedImage(Array.from(keys)[0] as string)
             }
             fullWidth
           >
-            {sampleStreams.map((stream) => (
-              <SelectItem key={stream}>
-                {stream.charAt(0).toUpperCase() + stream.slice(1)}
-              </SelectItem>
+            {sampleImages.map((image) => (
+              <SelectItem key={image}>{image}</SelectItem>
             ))}
           </Select>
         </div>
         <div className="flex-grow">
-          <object
-            data={`http://ec2-3-86-53-202.compute-1.amazonaws.com:2500/api/v5/stream/${selectedStream}`}
-            type="image/jpeg"
+          <img
+            src={`https://ipd-ccet.vercel.app/${selectedImage}`}
+            alt="Selected CCTV"
             className="w-full h-auto border rounded shadow-md"
-          >
-            Live stream not supported.
-          </object>
+          />
         </div>
       </div>
 
@@ -239,14 +267,14 @@ export default function VideoFeed(): JSX.Element {
         <div className="flex flex-col md:flex-row md:items-end">
           <Textarea
             label="Your Question"
-            placeholder="Ask something about the stream..."
+            placeholder="Ask something about the image..."
             value={userQuestion}
             onChange={(e) => setUserQuestion(e.target.value)}
             fullWidth
             rows={3}
           />
           <Button
-            onClick={handleSend}
+            onClick={() => handleSend()}
             isLoading={loading}
             disabled={loading}
             className="mt-2 md:mt-0 md:ml-4 self-end"
@@ -255,6 +283,10 @@ export default function VideoFeed(): JSX.Element {
             Send
           </Button>
         </div>
+        
+        {/* Suggested Questions */}
+        <SuggestedQuestions />
+
         {/* Chat History */}
         <div className="flex-grow overflow-y-auto mb-4">
           <h3 className="text-2xl font-semibold mb-4 gradient-text3">
@@ -295,6 +327,8 @@ export default function VideoFeed(): JSX.Element {
             ))}
           </div>
         </div>
+        {/* <VideoCamFeed /> */}
+        {/* User Input */}
       </div>
     </div>
   );
