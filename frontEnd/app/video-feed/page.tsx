@@ -1,7 +1,7 @@
 // VideoFeed.tsx
 
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 import axios from "axios";
 import { Select, SelectItem } from "@nextui-org/select";
@@ -12,12 +12,12 @@ import {
   FaRegFolder,
   FaRegFolderOpen,
   FaPaperPlane,
-  FaImage,
-  FaQuestion,
   FaRobot,
   FaUser,
+  FaImage,
 } from "react-icons/fa";
-import VideoCamFeed from "../video-feed";
+// Remove VideoCamFeed if not needed or ensure it's configured properly
+// import VideoCamFeed from "../video-feed";
 
 export interface ObjectIdentification {
   type: string; // Type of object (e.g., person, vehicle, animal)
@@ -58,20 +58,18 @@ export interface ChatHistoryEntry {
 }
 
 export default function VideoFeed(): JSX.Element {
-  const [selectedImage, setSelectedImage] = useState<string>("hall1.png");
+  // Rename selectedImage to selectedStream
+  const [selectedStream, setSelectedStream] = useState<string>("door");
   const [userQuestion, setUserQuestion] = useState<string>("");
   const [chatHistory, setChatHistory] = useState<ChatHistoryEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const sampleImages: string[] = [
-    "room2.png",
-    "room1.png",
-    "lawn1.png",
-    "hall3.png",
-    "hall2.png",
-    "hall1.png",
-    "garage1.png",
-    "door1.png",
+  // Update sampleImages to sampleStreams
+  const sampleStreams: string[] = [
+    "door",
+    "garage",
+    "lawn",
+    // Add more stream keys as defined in your backend
   ];
 
   const handleSend = async (): Promise<void> => {
@@ -81,7 +79,7 @@ export default function VideoFeed(): JSX.Element {
 
     try {
       const response = await axios.post<ChatResponse>("/api/v4/chat", {
-        imageName: selectedImage,
+        streamKey: selectedStream, // Update parameter name if backend expects 'streamKey'
         userQuestion,
       });
 
@@ -205,30 +203,34 @@ export default function VideoFeed(): JSX.Element {
 
   return (
     <div className="w-full h-screen flex flex-row">
-      {/* Left Panel: Image Selection and Display */}
+      {/* Left Panel: Stream Selection and Display */}
       <div className="w-full md:w-1/2 lg:w-2/5 p-4 flex flex-col space-y-4 overflow-y-auto">
         <div>
           <Select
-            label="Select Image"
+            label="Select Stream"
             startContent={<FaImage className="text-default-400" />}
-            placeholder="Choose an image"
-            selectedKeys={new Set([selectedImage])}
+            placeholder="Choose a stream"
+            selectedKeys={new Set([selectedStream])}
             onSelectionChange={(keys) =>
-              setSelectedImage(Array.from(keys)[0] as string)
+              setSelectedStream(Array.from(keys)[0] as string)
             }
             fullWidth
           >
-            {sampleImages.map((image) => (
-              <SelectItem key={image}>{image}</SelectItem>
+            {sampleStreams.map((stream) => (
+              <SelectItem key={stream}>
+                {stream.charAt(0).toUpperCase() + stream.slice(1)}
+              </SelectItem>
             ))}
           </Select>
         </div>
         <div className="flex-grow">
-          <img
-            src={`https://ipd-24.vercel.app/${selectedImage}`}
-            alt="Selected CCTV"
+          <object
+            data={`http://ec2-3-86-53-202.compute-1.amazonaws.com:2500/api/v5/stream/${selectedStream}`}
+            type="image/jpeg"
             className="w-full h-auto border rounded shadow-md"
-          />
+          >
+            Live stream not supported.
+          </object>
         </div>
       </div>
 
@@ -237,7 +239,7 @@ export default function VideoFeed(): JSX.Element {
         <div className="flex flex-col md:flex-row md:items-end">
           <Textarea
             label="Your Question"
-            placeholder="Ask something about the image..."
+            placeholder="Ask something about the stream..."
             value={userQuestion}
             onChange={(e) => setUserQuestion(e.target.value)}
             fullWidth
@@ -293,8 +295,6 @@ export default function VideoFeed(): JSX.Element {
             ))}
           </div>
         </div>
-        <VideoCamFeed />
-        {/* User Input */}
       </div>
     </div>
   );

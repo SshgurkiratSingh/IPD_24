@@ -103,12 +103,7 @@ const mainPageConfig = [
         defaultState: false,
         icon: MdTv,
       },
-      {
-        heading: "OLED",
-        topic: "hall/oled",
-        type: "oled",
-        defaultState: false,
-      },
+
       {
         heading: "Ambient Light",
         topic: "hall/ambientLight",
@@ -156,14 +151,6 @@ const mainPageConfig = [
         endMark: "%",
         type: "humidity",
         icon: MdOpacity,
-      },
-      {
-        topic: "hall/gas",
-        heading: "Gas Level",
-        longHeading: "Hall Gas Level",
-        endMark: "ppm",
-        type: "gas",
-        icon: MdLocalGasStation,
       },
     ],
     backImg: "/hallBack.webp",

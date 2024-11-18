@@ -87,7 +87,7 @@ export default function VideoCamFeed(): JSX.Element {
             {/* Display Live Stream */}
             <div className="w-full h-auto border rounded">
               <img
-                src={`http://localhost:5000/${selectedStream}`}
+                src={`/api/v5/stream/${selectedStream}`}
                 alt={`${selectedStream} Stream`}
                 className="w-full h-auto"
               />
