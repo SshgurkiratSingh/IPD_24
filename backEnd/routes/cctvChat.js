@@ -19,7 +19,17 @@ const {
 const { GoogleAIFileManager } = require("@google/generative-ai/server");
 const { route } = require("./history");
 
-const NodeCache = require("node-cache"); // Import node-cache
+const nodePersist = require("node-persist"); // Import node-persist
+
+// Initialize node-persist
+(async () => {
+  await nodePersist.init({
+    dir: path.join(__dirname, "cache"), // Directory for cache storage
+    encoding: "utf8",
+    ttl: 1000 * 60 * 60, // 1 hour in milliseconds
+    // other options can be added here
+  });
+})();
 
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
@@ -28,9 +38,6 @@ const fileManager = new GoogleAIFileManager(apiKey);
 const app = express();
 
 app.use(express.json()); // For parsing application/json
-
-// Initialize cache with a default TTL of 1 hour (3600 seconds)
-const cache = new NodeCache({ stdTTL: 3600, checkperiod: 120 });
 
 /**
  * Uploads the given file to Gemini.
@@ -260,23 +267,27 @@ router.post("/chat", async (req, res) => {
   // Create a unique cache key based on imageName and userQuestion
   const cacheKey = `${imageName}:${userQuestion}`;
 
-  // Check if the response is already in cache
-  const cachedResponse = cache.get(cacheKey);
-  if (cachedResponse) {
-    console.log(`Cache hit for key: ${cacheKey}`);
-    return res.json(cachedResponse);
-  }
-
   try {
+    // Check if the response is already in cache
+    const cachedResponse = await nodePersist.getItem(cacheKey);
+    if (cachedResponse) {
+      console.log(`Cache hit for key: ${cacheKey}`);
+      return res.json(cachedResponse);
+    }
+
+    // If not in cache, process the request
     const responseText = await processImageChat(
       imageName,
       userQuestion,
       history
     );
+
     const parsedResponse = JSON.parse(responseText);
 
-    // Store the response in cache
-    cache.set(cacheKey, parsedResponse);
+    // Store the response in node-persist with TTL (1 hour)
+    await nodePersist.setItem(cacheKey, parsedResponse, {
+      ttl: 1000 * 60 * 60,
+    }); // 1 hour TTL
 
     res.json(parsedResponse);
   } catch (error) {
@@ -284,6 +295,18 @@ router.post("/chat", async (req, res) => {
     res
       .status(500)
       .json({ error: "An error occurred while processing your request." });
+  }
+});
+
+// Handle application termination gracefully
+process.on("SIGINT", async () => {
+  try {
+    await nodePersist.flush();
+    console.log("Cache flushed to disk.");
+    process.exit(0);
+  } catch (err) {
+    console.error("Error flushing cache during shutdown:", err);
+    process.exit(1);
   }
 });
 

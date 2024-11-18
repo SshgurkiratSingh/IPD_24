@@ -30,6 +30,7 @@
     "music-metadata": "^8.3.0",
     "node-cache": "^5.1.2",
     "node-cron": "^3.0.3",
+    "node-persist": "^4.0.3",
     "openai": "^4.71.1",
     "spotify-web-api-js": "^1.5.2",
     "spotify-web-api-node": "^5.0.2",
