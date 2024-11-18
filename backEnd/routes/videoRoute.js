@@ -38,15 +38,27 @@ router.get("/stream/:stream", checkStreamExists, (req, res) => {
     "Content-Type": "multipart/x-mixed-replace; boundary=frame",
   });
 
-  // Initialize FFmpeg command
+  // Initialize FFmpeg command with looping and real-time streaming
   const command = ffmpeg(videoPath)
-    .format("mjpeg")
-    .videoCodec("mjpeg")
-    .noAudio()
-    .size("320x240") // Set minimal resolution
-    .fps(10) // Set frame rate to 10 FPS
-    .on("error", (err) => {
+    .inputOptions([
+      "-re", // Read input at native frame rate
+      "-stream_loop",
+      "-1", // Loop the input indefinitely
+    ])
+    .outputOptions([
+      "-an", // No audio
+      "-vcodec mjpeg", // Use MJPEG codec
+      "-r 10", // Set output frame rate to 10 FPS
+      "-vf",
+      "scale=720:480", // Set resolution to 320x240
+      "-f mjpeg", // Output format as MJPEG
+    ])
+    .on("start", (cmd) => {
+      console.log("FFmpeg started with command:", cmd);
+    })
+    .on("error", (err, stdout, stderr) => {
       console.error("FFmpeg error:", err.message);
+      console.error("FFmpeg stderr:", stderr);
       res.end();
     })
     .on("end", () => {
@@ -63,6 +75,13 @@ router.get("/stream/:stream", checkStreamExists, (req, res) => {
     res.write(chunk);
     res.write("\r\n");
   });
+
+  // Handle client disconnect
+  req.on("close", () => {
+    console.log(`Client disconnected from stream: ${streamKey}`);
+    command.destroy(); // Stop FFmpeg process
+    res.end();
+  });
 });
 
 // Route to fetch the latest frame as JPEG
@@ -78,7 +97,7 @@ router.get("/latest-frame/:stream", checkStreamExists, (req, res) => {
   // Extract a single frame using FFmpeg
   ffmpeg(videoPath)
     .frames(1)
-    .size("320x240") // Ensure the frame matches the stream resolution
+    .size("720x480") // Ensure the frame matches the stream resolution
     .outputFormat("image2")
     .on("error", (err) => {
       console.error("FFmpeg error:", err.message);
