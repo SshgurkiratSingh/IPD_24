@@ -1,12 +1,15 @@
-// chatRouter.js
-
 const express = require("express");
 const router = express.Router();
+
 const cors = require("cors");
+
+// Middleware setup
+router.use(express.json());
+router.use(express.urlencoded({ extended: true }));
+router.use(cors());
 const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
-require("dotenv").config(); // Ensure you have a .env file with GEMINI_API_KEY
 
 const {
   GoogleGenerativeAI,
@@ -14,10 +17,30 @@ const {
   HarmBlockThreshold,
 } = require("@google/generative-ai");
 const { GoogleAIFileManager } = require("@google/generative-ai/server");
+const { route } = require("./history");
 
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 const fileManager = new GoogleAIFileManager(apiKey);
+
+const app = express();
+
+app.use(express.json()); // For parsing application/json
+
+/**
+ * Uploads the given file to Gemini.
+ *
+ * See https://ai.google.dev/gemini-api/docs/prompting_with_media
+ */
+async function uploadToGemini(filePath, mimeType) {
+  const uploadResult = await fileManager.uploadFile(filePath, {
+    mimeType,
+    displayName: filePath,
+  });
+  const file = uploadResult.file;
+  console.log(`Uploaded file ${file.displayName} as: ${file.name}`);
+  return file;
+}
 
 const model = genAI.getGenerativeModel({
   model: "gemini-1.5-pro-002",
@@ -56,63 +79,74 @@ const generationConfig = {
           properties: {
             type: {
               type: "string",
-              description: "Type of object (e.g., person, furniture, appliance)",
+              description: "Type of object (e.g., person, vehicle, animal)",
             },
             count: {
-              type: "number",
+              type: "string",
               description: "Number of this type observed",
             },
             details: {
               type: "string",
               description:
-                "Additional details (e.g., color, position, activity)",
+                "Additional details (e.g., clothing description for people, object description)",
             },
           },
           required: ["type", "count", "details"],
         },
       },
-      activity_analysis: {
+      behavior_analysis: {
         type: "array",
-        description: "Analysis of observed activities in the footage.",
+        description: "Analysis of observed behaviors in the footage.",
         items: {
           type: "object",
           properties: {
-            activity: {
+            description: {
               type: "string",
-              description: "Description of the activity",
+              description: "Detail of any unusual or suspicious behavior",
             },
-            significance: {
+            severity: {
               type: "string",
-              description: "Significance level (e.g., normal, unusual, alert)",
+              description: "Severity level (e.g., low, medium, high)",
             },
           },
-          required: ["activity", "significance"],
+          required: ["description", "severity"],
         },
       },
-      potential_issues: {
+      potential_concerns: {
         type: "array",
-        description: "Identified issues based on the analysis.",
+        description: "Identified concerns based on the analysis.",
         items: {
           type: "object",
           properties: {
-            issue_type: {
+            type: {
               type: "string",
-              description: "Type of issue (e.g., safety, security)",
+              description: "Type of concern (e.g., safety, security)",
             },
             description: {
               type: "string",
-              description: "Specific description of the issue",
+              description: "Specific description of the concern",
             },
           },
-          required: ["issue_type", "description"],
+          required: ["type", "description"],
         },
       },
-      recommendations: {
+      additional_insights: {
         type: "array",
-        description: "Recommendations based on the analysis.",
+        description: "Additional insights derived from the observed footage.",
         items: {
-          type: "string",
-          description: "A single recommendation",
+          type: "object",
+          properties: {
+            insight: {
+              type: "string",
+              description:
+                "Additional interpretations or strategic assessments based on the observed footage",
+            },
+            impact: {
+              type: "string",
+              description: "Potential impact or significance of the insight",
+            },
+          },
+          required: ["insight", "impact"],
         },
       },
       summary: {
@@ -126,50 +160,12 @@ const generationConfig = {
       "scene_overview",
       "user_query_response",
       "object_identification",
-      "activity_analysis",
-      "potential_issues",
-      "recommendations",
+      "behavior_analysis",
+      "potential_concerns",
+      "additional_insights",
       "summary",
     ],
   },
-};
-
-// Middleware setup
-router.use(express.json());
-router.use(express.urlencoded({ extended: true }));
-router.use(cors());
-
-// In-memory cache
-const cache = {};
-const CACHE_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
-
-/**
- * Uploads the given file to Gemini.
- *
- * See https://ai.google.dev/gemini-api/docs/prompting_with_media
- */
-async function uploadToGemini(filePath, mimeType) {
-  const uploadResult = await fileManager.uploadFile(filePath, {
-    mimeType,
-    displayName: path.basename(filePath),
-  });
-  const file = uploadResult.file;
-  console.log(`Uploaded file ${file.displayName} as: ${file.name}`);
-  return file;
-}
-
-/**
- * Maps image names to room names.
- */
-const roomMapping = {
-  "room1.png": "Living Room",
-  "room2.png": "Kitchen",
-  "lawn1.png": "Front Lawn",
-  "hall1.png": "Main Hallway",
-  "hall2.png": "Upstairs Hallway",
-  "hall3.png": "Basement Hallway",
-  "garage1.png": "Garage",
-  "door1.png": "Front Door",
 };
 
 /**
@@ -177,15 +173,6 @@ const roomMapping = {
  */
 async function processImageChat(imageName, userQuestion, history = []) {
   try {
-    const cacheKey = `${imageName}-${userQuestion}`;
-    const now = Date.now();
-
-    // Check cache
-    if (cache[cacheKey] && now - cache[cacheKey].timestamp < CACHE_TTL) {
-      console.log("Serving from cache");
-      return cache[cacheKey].responseText;
-    }
-
     // Fetch the image from the URL
     const imageUrl = `https://ipd-ccet.vercel.app/${imageName}`;
     const imagePath = path.join("/tmp", imageName);
@@ -208,11 +195,6 @@ async function processImageChat(imageName, userQuestion, history = []) {
       responseType: "stream",
     });
 
-    // Ensure the /tmp directory exists
-    if (!fs.existsSync("/tmp")) {
-      fs.mkdirSync("/tmp");
-    }
-
     // Save the image to the file system
     const writer = fs.createWriteStream(imagePath);
     response.data.pipe(writer);
@@ -225,32 +207,24 @@ async function processImageChat(imageName, userQuestion, history = []) {
     // Upload the image to Gemini
     const uploadedFile = await uploadToGemini(imagePath, mimeType);
 
-    // Get room name
-    const roomName = roomMapping[imageName] || "Unknown Room";
-
-    // Prepare the system prompt within the user message
-    const systemPrompt = `You are analyzing a CCTV image from the ${roomName}. Provide detailed analysis including object identification, activity analysis, potential issues, and recommendations. Ensure the response follows the specified JSON schema.`;
-
-    // Combine system prompt with user question
-    const combinedUserQuestion = `${systemPrompt}\n\nUser query: ${userQuestion}`;
-
-    // Prepare the chat history without 'system' role
-    const formattedHistory = history.map((item) => ({
+    // Prepare the chat session
+    const chatHistory = history.map((item) => ({
       role: item.role,
-      content:
-        item.role === "assistant" && typeof item.content !== "string"
-          ? JSON.stringify(item.content)
-          : item.content,
+      parts: item.parts,
     }));
 
-    const chatHistory = [
-      // Prepend combined system prompt and user question as the latest user message
-      ...formattedHistory,
-      {
-        role: "user",
-        content: combinedUserQuestion,
-      },
-    ];
+    chatHistory.push({
+      role: "user",
+      parts: [
+        {
+          fileData: {
+            mimeType: mimeType,
+            fileUri: uploadedFile.uri,
+          },
+        },
+        { text: `User query: ${userQuestion}\n` },
+      ],
+    });
 
     const chatSession = model.startChat({
       generationConfig,
@@ -260,19 +234,8 @@ async function processImageChat(imageName, userQuestion, history = []) {
     // Send message to the model
     const result = await chatSession.sendMessage(userQuestion);
 
-    // Get response text
-    const responseText = await result.response.text();
-
-    // Validate and parse the response
-    const parsedResponse = JSON.parse(responseText);
-
-    // Store in cache
-    cache[cacheKey] = {
-      responseText,
-      timestamp: now,
-    };
-
-    return responseText;
+    // Return the response
+    return result.response.text();
   } catch (error) {
     console.error("Error in processImageChat:", error);
     throw error;
@@ -293,7 +256,7 @@ router.post("/chat", async (req, res) => {
     const responseText = await processImageChat(
       imageName,
       userQuestion,
-      history || []
+      history
     );
     res.json(JSON.parse(responseText));
   } catch (error) {
@@ -302,5 +265,6 @@ router.post("/chat", async (req, res) => {
       .json({ error: "An error occurred while processing your request." });
   }
 });
+
 
 module.exports = router;
