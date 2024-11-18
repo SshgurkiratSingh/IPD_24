@@ -174,7 +174,7 @@ const generationConfig = {
 async function processImageChat(imageName, userQuestion, history = []) {
   try {
     // Fetch the image from the URL
-    const imageUrl = `https://ipd-24.vercel.app/${imageName}`;
+    const imageUrl = `https://ipd-ccet.vercel.app/${imageName}`;
     const imagePath = path.join("/tmp", imageName);
 
     // Determine MIME type
@@ -265,6 +265,5 @@ router.post("/chat", async (req, res) => {
       .json({ error: "An error occurred while processing your request." });
   }
 });
-
 
 module.exports = router;
