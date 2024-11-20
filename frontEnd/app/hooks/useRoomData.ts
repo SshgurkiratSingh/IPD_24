@@ -21,7 +21,7 @@ const fetcher = async (url: string) => {
 
 const useRoomData = (): UseRoomDataResult => {
   const { data, error } = useSWR('/api/v1/logs', fetcher, {
-    refreshInterval: 5000, // Refresh every 5 seconds
+    refreshInterval: 2000, // Refresh every 5 seconds
     revalidateOnFocus: false, // Don't revalidate on window focus
   });
 
