@@ -185,7 +185,7 @@ def get_player_info(mqtt_client):
 if __name__ == "__main__":
     # Initialize MQTT client
     mqtt_client = MQTTClient(
-        broker="ec2-3-86-53-202.compute-1.amazonaws.com", port=1883)
+        broker="localhost", port=1883)
 
     # Connect to MQTT broker
     if mqtt_client.connect():

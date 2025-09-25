@@ -1,7 +1,7 @@
 const { OpenAI } = require("openai");
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY2,
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 const generateChatResponse = async (messages) => {
@@ -19,5 +19,5 @@ const generateChatResponse = async (messages) => {
 };
 
 module.exports = {
-  generateChatResponse
+  generateChatResponse,
 };
