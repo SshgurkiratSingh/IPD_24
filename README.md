@@ -1,13 +1,13 @@
 # IPD 24 - Home Automation & IoT Ecosystem
 
+> **1st Prize Winner — CCET IPD Competition 2024**  
+> *This project was awarded first place for its innovative approach to integrating real-time telemetry, AI-driven home automation, and robust hardware-software orchestration.*
+
 This repository serves as a monorepo for the IPD 24 project, encompassing the complete ecosystem for a comprehensive home automation and IoT platform. It integrates firmware for multiple microcontrollers, a backend service, frontend web applications, desktop clients, and simulation tools.
 
 ## Project Structure
 
-*   **Backend**: Contains the server-side code (Express.js, Prisma) handling APIs, database interactions, and MQTT integration.
-*   **Frontend**: 
-    *   `frontend_next_v14`: The main Next.js 14 based web application for user interaction and dashboarding.
-    *   `frontend_legacy_v13`: A legacy Next.js 13 interface retained for reference and specific feature support.
+*   **Web_App**: The unified full-stack application (Next.js & Express.js) handling the frontend UI, APIs, database (Prisma), and MQTT integration in a single monolithic architecture.
 *   **Firmware**: Source code for all edge devices and microcontrollers (ESP32, ESP8266) managing hardware integration like relays, ultrasonics, and RFIDs.
 *   **Clients**: Desktop companion applications for managing the system locally.
 *   **Simulators**: Tools such as the CCTV Simulator used for testing data ingestion without physical hardware.
@@ -16,7 +16,7 @@ This repository serves as a monorepo for the IPD 24 project, encompassing the co
 
 ## Integration & Deployment
 
-The backend and primary frontend applications are fully integrated via Docker. We utilize a `docker-compose.yml` to orchestrate both services, ensuring rapid startup in a production-ready environment.
+The full-stack application is fully integrated and containerized via Docker. We utilize a `docker-compose.yml` to orchestrate the unified Web_App, ensuring rapid startup in a production-ready environment.
 
 To start the system via Docker:
 
@@ -24,7 +24,7 @@ To start the system via Docker:
 docker-compose up -d --build
 ```
 
-This spins up the backend API on port 5000 and the frontend application on port 3000.
+This spins up the monolithic application (Next.js + Express API) on port 3000.
 
 ## Documentation
 
